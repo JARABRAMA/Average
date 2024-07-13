@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">Average</string>
+    <string name="courses">Courses</string>
+    <string name="credits_card">credits:</string>
+    <string name="add_course">Add Course</string>
+    <string name="name">Name</string>
+    <string name="course_details">Enter course details</string>
+    <string name="course_name">Course Name</string>
+    <string name="credits">Credits</string>
+    <string name="credits_placeholder">Credits Course</string>
+    <string name="save">Save</string>
 </resources>
