@@ -9,4 +9,6 @@
     <string name="credits">Credits</string>
     <string name="credits_placeholder">Credits Course</string>
     <string name="save">Save</string>
+    <string name="error">Error</string>
+    <string name="error_credits">Credits value must be an integer number</string>
 </resources>
