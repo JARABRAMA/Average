@@ -9,4 +9,6 @@ sealed class Screen(
     data object Course: Screen("course")
     data object CourseList: Screen("course-list")
     data object NewCourse: Screen("new-course")
+    data object GradeList: Screen("grade-list")
+    data object Settings: Screen("settings")
 }

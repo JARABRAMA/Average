@@ -3,8 +3,10 @@ package com.jarabrama.average.di
 import android.content.Context
 import com.jarabrama.average.repository.CourseRepository
 import com.jarabrama.average.repository.GradeRepository
+import com.jarabrama.average.repository.SettingsRepository
 import com.jarabrama.average.repository.impl.CourseRepositoryFileBased
 import com.jarabrama.average.repository.impl.GradeRepositoryFileBased
+import com.jarabrama.average.repository.impl.SettingsRepositoryFileBased
 import com.jarabrama.average.service.impl.CourseServiceImpl
 import dagger.Module
 import dagger.Provides
@@ -36,5 +38,10 @@ class Module {
     @Provides
     fun provideGradeService(gradeRepository: GradeRepository): GradeService {
         return GradeServiceImpl(gradeRepository)
+    }
+
+    @Provides
+    fun provideSettingsRepository(@ApplicationContext context: Context): SettingsRepository {
+        return SettingsRepositoryFileBased(context)
     }
 }
