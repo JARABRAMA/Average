@@ -1,3 +1,21 @@
 <resources>
     <string name="app_name">Average</string>
+    <string name="courses">Courses</string>
+    <string name="credits_card">credits:</string>
+    <string name="add_course">Add Course</string>
+    <string name="name">Name</string>
+    <string name="course_details">Enter course details</string>
+    <string name="course_name">Course Name</string>
+    <string name="credits">Credits</string>
+    <string name="credits_placeholder">Credits Course</string>
+    <string name="save">Save</string>
+    <string name="error">Error</string>
+    <string name="error_credits">Credits value must be an integer number</string>
+    <string name="grades">Grades</string>
+    <string name="setting">Settings</string>
+    <string name="minimum_qualification">Minimum Qualification</string>
+    <string name="label_min_qualification">Set the minimum qualification you can obtain</string>
+    <string name="maximum_qualification">Maximum Qualification</string>
+    <string name="maximum_qualification_label">set the maximum qualification can you obtain</string>
+    <string name="set">Set</string>
 </resources>

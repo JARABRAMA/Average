@@ -47,7 +47,7 @@ class CourseRepositoryFileBased(private val context: Context) : CourseRepository
             Log.e("CourseRepositoryFileBased: reading", e.message, e)
         }
 
-        Log.i("Repository findAll", "Courses: $courses")
+        Log.i("Repository findAll", "CourseList: $courses")
         return courses
     }
 
