@@ -100,7 +100,6 @@ fun GradeItem(name: String, qualification: Double, percentage: Double) {
                         Text(text = ": $percentage")
                     }
                 }
-
             }
         }
     }

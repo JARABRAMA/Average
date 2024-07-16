@@ -1,5 +1,6 @@
 package com.jarabrama.average.ui.screens
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -20,7 +21,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -29,15 +29,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.jarabrama.average.R
 import com.jarabrama.average.Screen
 import com.jarabrama.average.model.Course
 import com.jarabrama.average.ui.theme.ui.FontSizes
 import com.jarabrama.average.ui.theme.ui.Padding
 import com.jarabrama.average.ui.viewmodel.CourseListViewModel
-import java.util.function.ToDoubleBiFunction
 
 fun newCourse(navController: NavController) {
     navController.navigate(Screen.NewCourse.route)
@@ -69,7 +70,7 @@ private fun CourseListScreen(
             )
         }
     ) {
-        ListCourses(courseList, it)
+        ListCourses(courseList, it, navController)
     }
 }
 
@@ -100,7 +101,7 @@ fun CoursesTopBar(title: String, navController: NavController) {
             IconButton(onClick = { newCourse(navController) }) {
                 Icon(imageVector = Icons.Default.Add, "Add course")
             }
-            IconButton(onClick = { TODO() }) {
+            IconButton(onClick = { /* Todo: show the average and the analysis of the semester */ }) {
                 Icon(imageVector = Icons.Default.MoreVert, contentDescription = "details")
             }
         }
@@ -109,7 +110,7 @@ fun CoursesTopBar(title: String, navController: NavController) {
 
 
 @Composable
-fun ListCourses(courses: List<Course>, paddingValues: PaddingValues) {
+fun ListCourses(courses: List<Course>, paddingValues: PaddingValues, navController: NavController) {
     Column(
         Modifier
             .padding(paddingValues)
@@ -117,7 +118,7 @@ fun ListCourses(courses: List<Course>, paddingValues: PaddingValues) {
             .verticalScroll(rememberScrollState()),
     ) {
         courses.forEach {
-            ItemCourse(it)
+            ItemCourse(it, navController)
         }
     }
 }
@@ -126,14 +127,16 @@ fun ListCourses(courses: List<Course>, paddingValues: PaddingValues) {
 @Composable
 private fun ItemCoursePreview() {
     val course = Course(3, "Python fundamentals", 4)
-    ItemCourse(course = course)
+    ItemCourse(course = course, rememberNavController())
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ItemCourse(course: Course) {
+fun ItemCourse(course: Course, navController: NavController) {
     Card(
         modifier = Modifier.padding(Padding.cardList),
-        shape = RoundedCornerShape(8)
+        shape = RoundedCornerShape(8),
+        onClick = { onClickCourse(navController, course.id) }
     ) {
         Column(
             Modifier
@@ -144,19 +147,40 @@ fun ItemCourse(course: Course) {
                 Icon(
                     painter = painterResource(id = R.drawable.book),
                     null,
-                    modifier = Modifier.padding(Padding.smallPadding)
+                    modifier = Modifier.padding(Padding.normalPadding)
                 )
                 Column {
-                    TextButton(onClick = { /*TODO*/ }) {
-                        Text(text = course.name, fontSize = FontSizes.normal)
-                    }
-                    Row(Modifier.padding(Padding.horizontal)) {
-                        Text(text = stringResource(id = R.string.credits))
-                        Text(text = ": ${course.credits}")
+
+                    Text(
+                        text = course.name,
+                        fontSize = FontSizes.normal,
+                        modifier = Modifier.padding(Padding.normalPadding),
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Row(
+                        Modifier
+                            .padding(Padding.horizontal)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row {
+                            Text(text = stringResource(id = R.string.credits))
+                            Text(text = ": ${course.credits}")
+                        }
+                        Row {
+                            Text(text = stringResource(id = R.string.average))
+                            // Todo: set the average as a text in this place
+                        }
+
                     }
                 }
             }
         }
     }
+}
+
+fun onClickCourse(navController: NavController, id: Int) {
+    navController.navigate("expanded-course/${id.toString()}")
 }
 

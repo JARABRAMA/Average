@@ -20,4 +20,6 @@
     <string name="set">Set</string>
     <string name="goal">Goal</string>
     <string name="goal_label">Set the average that you wish to obtain</string>
+    <string name="average">Average</string>
+    <string name="add_grade">Add Grade</string>
 </resources>
