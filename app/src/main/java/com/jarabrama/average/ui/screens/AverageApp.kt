@@ -9,12 +9,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -22,17 +24,19 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
 import com.jarabrama.average.Screen
+import com.jarabrama.average.di.ExpandedCourseAssistedFactory
 import com.jarabrama.average.ui.navigation.BottomNavigationItem
+import com.jarabrama.average.ui.viewmodel.ExpandedCourseViewModel
 
 @Composable
-fun AverageApp() {
+fun AverageApp(expandedCourseAssistedFactory: ExpandedCourseAssistedFactory) {
 
     val navController = rememberNavController()
 
     Scaffold(
         bottomBar = { BottomBar(navController = navController) }
     ) {
-        AppNavHost(navController = navController, it)
+        AppNavHost(navController = navController, it, expandedCourseAssistedFactory)
     }
 }
 
@@ -45,7 +49,7 @@ private fun BottomBar(navController: NavController) {
         BottomNavigationItem.Settings
     )
 
-    var selectedItem by rememberSaveable { mutableStateOf(0) }
+    var selectedItem by rememberSaveable { mutableIntStateOf(0) }
 
     NavigationBar {
         navigationItems.forEachIndexed { index, bottomNavigationItem ->
@@ -73,7 +77,7 @@ private fun BottomBar(navController: NavController) {
 }
 
 @Composable
-fun AppNavHost(navController: NavHostController, paddingValues: PaddingValues) {
+fun AppNavHost(navController: NavHostController, paddingValues: PaddingValues, expandedCourseAssistedFactory: ExpandedCourseAssistedFactory) {
 
     NavHost(navController = navController, startDestination = Screen.Course.route) {
         navigation(route = Screen.Course.route, startDestination = Screen.CourseList.route) {
@@ -86,6 +90,15 @@ fun AppNavHost(navController: NavHostController, paddingValues: PaddingValues) {
             }
             composable(route = Screen.NewCourse.route) {
                 NewCourseScreen(viewModel = hiltViewModel(), navController = navController)
+            }
+            composable(route = Screen.ExpandedCourse().route, arguments = Screen.ExpandedCourse().navArguments) {
+                val courseId: Int = it.arguments?.getInt("course-id")?:0
+                val viewModel: ExpandedCourseViewModel = expandedCourseAssistedFactory.create(courseId)
+                ExpandedCourseScreen(
+                    viewModel = viewModel,
+                    navController = navController,
+                    parentPaddingValues = paddingValues
+                )
             }
         }
         composable(route = Screen.GradeList.route) {
