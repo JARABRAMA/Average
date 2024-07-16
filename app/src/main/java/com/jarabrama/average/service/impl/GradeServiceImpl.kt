@@ -10,7 +10,9 @@ import com.jarabrama.average.service.GradeService
 
 class GradeServiceImpl(private val gradeRepository: GradeRepository) : GradeService {
 
-    override fun findAll(courseId: Int): List<Grade> = gradeRepository.findAll(courseId)
+    override fun findAll(): List<Grade> = gradeRepository.findAll()
+    override fun findAllByCourseId(courseId: Int): List<Grade> =
+        gradeRepository.findAllByCourseId(courseId)
 
     override fun newGrade(
         courseId: Int,
@@ -19,15 +21,15 @@ class GradeServiceImpl(private val gradeRepository: GradeRepository) : GradeServ
         percentage: Double
     ): Grade {
         // percentage validation
-        val restingPercentage = 100.0 - (findAll(courseId).sumOf { it.percentage })
+        val restingPercentage = 100.0 - (findAllByCourseId(courseId).sumOf { it.percentage })
         if (percentage > restingPercentage) {
-            throw InvalidPercentageException (
+            throw InvalidPercentageException(
                 restingPercentage = restingPercentage,
                 inputPercentage = percentage
             )
         }
 
-        val grades: MutableList<Grade> = gradeRepository.grades()
+        val grades: MutableList<Grade> = gradeRepository.findAll()
         val newGrade = Grade(
             id = grades.size,
             courseId = courseId,
@@ -45,7 +47,7 @@ class GradeServiceImpl(private val gradeRepository: GradeRepository) : GradeServ
     }
 
     override fun update(grade: Grade): Grade {
-        val grades = gradeRepository.grades()
+        val grades = gradeRepository.findAll()
         val index: Int = grades.indexOf(grade)
         if (-1 != index) {
             grades[index] = grade
@@ -57,7 +59,7 @@ class GradeServiceImpl(private val gradeRepository: GradeRepository) : GradeServ
 
     override fun delete(id: Int) {
         val foundedGrade = gradeRepository.get(id) ?: throw GradeNotFoundException(id)
-        val grades = gradeRepository.grades()
+        val grades = gradeRepository.findAll()
         grades.remove(foundedGrade)
         gradeRepository.save(grades = grades)
     }
@@ -65,6 +67,6 @@ class GradeServiceImpl(private val gradeRepository: GradeRepository) : GradeServ
     override fun get(id: Int): Grade = gradeRepository.get(id) ?: throw CourseNotFoundException(id)
 
     override fun getAverage(courseId: Int): Double {
-        return findAll(courseId).sumOf { it.qualification * (it.percentage / 100) }
+        return findAllByCourseId(courseId).sumOf { it.qualification * (it.percentage / 100) }
     }
 }

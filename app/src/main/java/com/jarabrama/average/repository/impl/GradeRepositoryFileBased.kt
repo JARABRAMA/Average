@@ -29,7 +29,7 @@ class GradeRepositoryFileBased(private val context: Context) : GradeRepository {
         }
     }
 
-    override fun grades(): MutableList<Grade> {
+    override fun findAll(): MutableList<Grade> {
         val grades: MutableList<Grade> = mutableListOf()
         try {
             context.openFileInput(fileAddress).bufferedReader().use { reader ->
@@ -44,7 +44,7 @@ class GradeRepositoryFileBased(private val context: Context) : GradeRepository {
     }
 
 
-    override fun findAll(courseId: Int): List<Grade> = grades().filter { it.courseId == courseId }
+    override fun findAllByCourseId(courseId: Int): List<Grade> = findAll().filter { it.courseId == courseId }
 
 
     private fun toGrade(line: String): Grade {
@@ -77,7 +77,7 @@ class GradeRepositoryFileBased(private val context: Context) : GradeRepository {
     }
 
     override fun delete(grade: Grade) {
-        val grades = grades()
+        val grades = findAll()
         if (grades.remove(grade)) {
             save(grades)
             Log.i("GradeRepositoryFileBased: delete", "grade ${grade.id} removed")
@@ -86,7 +86,7 @@ class GradeRepositoryFileBased(private val context: Context) : GradeRepository {
         }
     }
 
-    override fun get(id: Int): Grade? = grades().firstOrNull { course -> course.id == id }
+    override fun get(id: Int): Grade? = findAll().firstOrNull { course -> course.id == id }
 
 
     private fun toDb(grade: Grade): String {

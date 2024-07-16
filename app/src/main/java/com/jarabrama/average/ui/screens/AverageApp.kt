@@ -78,17 +78,29 @@ fun AppNavHost(navController: NavHostController, paddingValues: PaddingValues) {
     NavHost(navController = navController, startDestination = Screen.Course.route) {
         navigation(route = Screen.Course.route, startDestination = Screen.CourseList.route) {
             composable(route = Screen.CourseList.route) {
-                CourseListScreen(viewModel = hiltViewModel(), navController = navController, paddingValues)
+                CourseListScreen(
+                    viewModel = hiltViewModel(),
+                    navController = navController,
+                    paddingValues
+                )
             }
             composable(route = Screen.NewCourse.route) {
                 NewCourseScreen(viewModel = hiltViewModel(), navController = navController)
             }
         }
         composable(route = Screen.GradeList.route) {
-
+            GradeListScreen(
+                navController = navController,
+                viewModel = hiltViewModel(),
+                paddingValues = paddingValues
+            )
         }
         composable(route = Screen.Settings.route) {
-            SettingsScreen(navController = navController, viewModel = hiltViewModel(), paddingValues)
+            SettingsScreen(
+                navController = navController,
+                viewModel = hiltViewModel(),
+                paddingValues
+            )
         }
 
 
