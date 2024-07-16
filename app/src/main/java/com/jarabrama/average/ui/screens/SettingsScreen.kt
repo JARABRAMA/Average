@@ -1,7 +1,6 @@
 package com.jarabrama.average.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -14,25 +13,33 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.jarabrama.average.R
 import com.jarabrama.average.ui.theme.ui.FontSizes
 import com.jarabrama.average.ui.theme.ui.Padding
 import com.jarabrama.average.ui.viewmodel.SettingsViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 
 @Composable
@@ -44,17 +51,24 @@ fun SettingsScreen(
     val minQualification by viewModel.minQualification.collectAsState()
     val maxQualification by viewModel.maxQualification.collectAsState()
     val goal by viewModel.goal.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     SettingsScreen(
         minQualification = minQualification,
         maxQualification = maxQualification,
         goal = goal,
+        snackbarHostState = snackbarHostState,
+        scope = scope,
         onMinQualificationChange = { viewModel.onMinQualificationChange(it) },
         onMaxQualificationChange = { viewModel.onMaxQualificationChange(it) },
         onGoalChange = { viewModel.onGoalChange(it) },
         navController = navController,
         onSave = { viewModel.onSave() },
-        paddingValues = paddingValues
+        paddingValues = paddingValues,
+        getErrorState = { viewModel.geErrorState() },
+        onDismiss = { viewModel.onDismiss() },
+        getErrorMessage = { viewModel.getErrorMessage() }
     )
 
 }
@@ -65,20 +79,43 @@ fun SettingsScreen(
     minQualification: String,
     maxQualification: String,
     goal: String,
+    snackbarHostState: SnackbarHostState,
+    scope: CoroutineScope,
     onMinQualificationChange: (String) -> Unit,
     onMaxQualificationChange: (String) -> Unit,
     onGoalChange: (String) -> Unit,
     navController: NavController,
     onSave: () -> Unit,
-    paddingValues: PaddingValues
+    paddingValues: PaddingValues,
+    getErrorState: () -> Boolean,
+    onDismiss: () -> Unit,
+    getErrorMessage: () -> String
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(text = stringResource(id = R.string.setting)) })
+            SettingsTopBar(
+                onSave,
+                getErrorMessage,
+                getErrorState,
+                scope,
+                snackbarHostState,
+                onDismiss,
+                navController
+            )
         },
         floatingActionButton = {
-            SaveFloatingButton(onSave, navController, paddingValues)
-        }
+            SaveFloatingButton(
+                onSave = onSave,
+                navController = navController,
+                paddingValues = paddingValues,
+                getErrorState = getErrorState,
+                getErrorMessage = getErrorMessage,
+                onDismiss = onDismiss,
+                snackbarHostState = snackbarHostState,
+                scope = scope
+            )
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { values ->
         SettingsComponents(
             paddingValues = values,
@@ -93,15 +130,60 @@ fun SettingsScreen(
 }
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun SettingsTopBar(
+    onSave: () -> Unit,
+    getErrorMessage: () -> String,
+    getErrorState: () -> Boolean,
+    scope: CoroutineScope,
+    snackbarHostState: SnackbarHostState,
+    onDismiss: () -> Unit,
+    navController: NavController
+) {
+    TopAppBar(
+        title = { Text(text = stringResource(id = R.string.setting)) },
+        actions = {
+            IconButton(
+                onClick = {
+                    onSaveSettings(
+                        onSave,
+                        getErrorState,
+                        getErrorMessage,
+                        scope,
+                        snackbarHostState,
+                        onDismiss,
+                        navController
+                    )
+                }
+            ) {
+                Icon(painterResource(id = R.drawable.check), "Set")
+            }
+        }
+    )
+}
+
+@Composable
 private fun SaveFloatingButton(
     onSave: () -> Unit,
     navController: NavController,
-    paddingValues: PaddingValues
+    paddingValues: PaddingValues,
+    getErrorState: () -> Boolean,
+    getErrorMessage: () -> String,
+    onDismiss: () -> Unit,
+    snackbarHostState: SnackbarHostState,
+    scope: CoroutineScope
 ) {
     FloatingActionButton(
         onClick = {
-            onSave()
-            onBack(navController)
+            onSaveSettings(
+                onSave,
+                getErrorState,
+                getErrorMessage,
+                scope,
+                snackbarHostState,
+                onDismiss,
+                navController
+            )
         },
         modifier = Modifier.padding(paddingValues)
     ) {
@@ -116,11 +198,47 @@ private fun SaveFloatingButton(
                 modifier = Modifier.padding(Padding.smallPadding)
             )
             Text(
-                text = stringResource(R.string.set),
+                text = stringResource(R.string.save),
                 modifier = Modifier.padding(Padding.smallPadding)
             )
             Spacer(modifier = Modifier.padding(Padding.smallPadding))
         }
+    }
+}
+
+private fun onSaveSettings(
+    onSave: () -> Unit,
+    getErrorState: () -> Boolean,
+    getErrorMessage: () -> String,
+    scope: CoroutineScope,
+    snackbarHostState: SnackbarHostState,
+    onDismiss: () -> Unit,
+    navController: NavController
+) {
+    onSave()
+    val errorState = getErrorState()
+    if (errorState) {
+        val errorMessage = getErrorMessage()
+        showSanckbar(scope, snackbarHostState, errorMessage)
+        onDismiss()
+    } else {
+        onBack(navController)
+    }
+}
+
+
+private fun showSanckbar(
+    scope: CoroutineScope,
+    snackbarHostState: SnackbarHostState,
+    errorMessage: String
+) {
+    scope.launch {
+        snackbarHostState.showSnackbar(
+            message = errorMessage,
+            actionLabel = "Dismiss",
+            duration = SnackbarDuration.Short,
+            withDismissAction = true
+        )
     }
 }
 
@@ -151,9 +269,13 @@ fun CardGoal(goal: String, onGoalChange: (String) -> Unit) {
             .fillMaxWidth()
     ) {
         Column(Modifier.padding(Padding.normalPadding)) {
-            Text(text = "Goal", fontSize = FontSizes.normal)
             Text(
-                text = "Set the average that you wish to obtain",
+                text = stringResource(R.string.goal),
+                fontSize = FontSizes.normal,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = stringResource(R.string.goal_label),
                 fontSize = FontSizes.small,
                 lineHeight = 1.sp
             )
@@ -171,11 +293,6 @@ fun CardGoal(goal: String, onGoalChange: (String) -> Unit) {
     }
 }
 
-@Preview
-@Composable
-private fun CardMinQualification() {
-    CardMinQualification(minQualification = "0.0") {}
-}
 
 @Composable
 private fun CardMinQualification(
@@ -188,7 +305,11 @@ private fun CardMinQualification(
                 .padding(Padding.normalPadding)
                 .fillMaxWidth(.45f)
         ) {
-            Text(text = stringResource(R.string.minimum_qualification), fontSize = FontSizes.normal)
+            Text(
+                text = stringResource(R.string.minimum_qualification),
+                fontSize = FontSizes.normal,
+                fontWeight = FontWeight.Bold
+            )
 
             Text(
                 text = stringResource(R.string.label_min_qualification),
@@ -214,7 +335,11 @@ private fun CardMinQualification(
 fun CardMaxQualification(maxQualification: String, onMaxQualificationChange: (String) -> Unit) {
     Card(Modifier.padding(Padding.smallPadding)) {
         Column(Modifier.padding(Padding.normalPadding)) {
-            Text(text = stringResource(R.string.maximum_qualification), fontSize = FontSizes.normal)
+            Text(
+                text = stringResource(R.string.maximum_qualification),
+                fontSize = FontSizes.normal,
+                fontWeight = FontWeight.Bold
+            )
             Text(
                 text = stringResource(R.string.maximum_qualification_label),
                 fontSize = FontSizes.small,

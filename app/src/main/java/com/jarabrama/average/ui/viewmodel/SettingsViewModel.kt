@@ -28,6 +28,9 @@ class SettingsViewModel @Inject constructor(
     private val _goal = MutableStateFlow("")
     val goal = _goal.asStateFlow()
 
+    private val _errorState = MutableStateFlow(false)
+    private val errorMessage = "Settings values must be decimal numbers"
+
     init {
         getValues()
     }
@@ -55,7 +58,7 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun setValues() {
+    fun onSave() {
         try {
             settings = Settings(
                 maxQualification = parseDouble(_maxQualification.value),
@@ -66,11 +69,11 @@ class SettingsViewModel @Inject constructor(
                 settingsRepository.setSettings(settings = settings)
             }
         } catch (e: NumberFormatException) {
-            TODO("manage this exception with a snackbar")
+            _errorState.value = true
         }
     }
 
-    fun onSave() {
-        TODO("Not yet implemented")
-    }
+    fun onDismiss() = !_errorState.value
+    fun geErrorState(): Boolean = _errorState.value
+    fun getErrorMessage(): String = errorMessage
 }
