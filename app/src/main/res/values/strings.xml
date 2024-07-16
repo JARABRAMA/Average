@@ -18,4 +18,6 @@
     <string name="maximum_qualification">Maximum Qualification</string>
     <string name="maximum_qualification_label">set the maximum qualification can you obtain</string>
     <string name="set">Set</string>
+    <string name="goal">Goal</string>
+    <string name="goal_label">Set the average that you wish to obtain</string>
 </resources>
