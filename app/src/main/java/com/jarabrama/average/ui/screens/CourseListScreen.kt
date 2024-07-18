@@ -1,5 +1,7 @@
 package com.jarabrama.average.ui.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -7,32 +9,48 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.jarabrama.average.R
 import com.jarabrama.average.Screen
 import com.jarabrama.average.model.Course
@@ -48,17 +66,26 @@ fun newCourse(navController: NavController) {
 fun CourseListScreen(
     viewModel: CourseListViewModel,
     navController: NavController,
-    paddingValues: PaddingValues
+    paddingValues: PaddingValues,
 ) {
     val courses by viewModel.courses.collectAsState()
-    CourseListScreen(courseList = courses, navController, paddingValues)
+
+    CourseListScreen(
+        courseList = courses,
+        navController,
+        paddingValues,
+        viewModel::onDeleteCourse,
+        viewModel::onEditCourse
+    )
 }
 
 @Composable
 private fun CourseListScreen(
     courseList: List<Course>,
     navController: NavController,
-    paddingValues: PaddingValues
+    paddingValues: PaddingValues,
+    onDeleteCourse: (Int) -> Unit,
+    onEditCourse: (Int) -> Unit
 ) {
     Scaffold(
         topBar = { CoursesTopBar(title = stringResource(id = R.string.courses), navController) },
@@ -70,7 +97,7 @@ private fun CourseListScreen(
             )
         }
     ) {
-        ListCourses(courseList, it, navController)
+        ListCourses(courseList, it, navController, onDeleteCourse, onEditCourse)
     }
 }
 
@@ -104,13 +131,20 @@ fun CoursesTopBar(title: String, navController: NavController) {
             IconButton(onClick = { /* Todo: show the average and the analysis of the semester */ }) {
                 Icon(imageVector = Icons.Default.MoreVert, contentDescription = "details")
             }
-        }
+        },
+        colors = TopAppBarDefaults.topAppBarColors()
     )
 }
 
 
 @Composable
-fun ListCourses(courses: List<Course>, paddingValues: PaddingValues, navController: NavController) {
+fun ListCourses(
+    courses: List<Course>,
+    paddingValues: PaddingValues,
+    navController: NavController,
+    onDeleteCourse: (Int) -> Unit,
+    onEditCourse: (Int) -> Unit
+) {
     Column(
         Modifier
             .padding(paddingValues)
@@ -118,25 +152,35 @@ fun ListCourses(courses: List<Course>, paddingValues: PaddingValues, navControll
             .verticalScroll(rememberScrollState()),
     ) {
         courses.forEach {
-            ItemCourse(it, navController)
+            ItemCourse(it, navController, onDeleteCourse, onEditCourse)
         }
     }
 }
 
-@Preview
-@Composable
-private fun ItemCoursePreview() {
-    val course = Course(3, "Python fundamentals", 4)
-    ItemCourse(course = course, rememberNavController())
-}
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun ItemCourse(course: Course, navController: NavController) {
+fun ItemCourse(
+    course: Course,
+    navController: NavController,
+    onDeleteCourse: (Int) -> Unit,
+    onEditCourse: (Int) -> Unit
+) {
+    var isMenuVisible by rememberSaveable { mutableStateOf(false) }
+    var pressOffset by remember { mutableStateOf(DpOffset.Zero) }
+    var itemHeight by remember { mutableStateOf(0.dp) }
     Card(
-        modifier = Modifier.padding(Padding.cardList),
-        shape = RoundedCornerShape(8),
-        onClick = { onClickCourse(navController, course.id) }
+        modifier = Modifier
+            .padding(Padding.cardList)
+            .pointerInput(true) {
+                detectTapGestures(
+                    onLongPress = {
+                        isMenuVisible = true
+                        pressOffset = DpOffset(it.x.toDp(), it.y.toDp())
+                    },
+                )
+            },
+
     ) {
         Column(
             Modifier
@@ -172,8 +216,67 @@ fun ItemCourse(course: Course, navController: NavController) {
                             Text(text = stringResource(id = R.string.average))
                             // Todo: set the average as a text in this place
                         }
-
                     }
+                }
+            }
+            DropdownMenu(
+                expanded = isMenuVisible,
+                onDismissRequest = {
+                    isMenuVisible = false
+                },
+                offset = pressOffset.copy(y = pressOffset.y, x = pressOffset.x)
+            ) {
+                PopUpMenu(onDeleteCourse, course.id, onEditCourse)
+            }
+        }
+    }
+}
+
+
+@Preview
+@Composable
+private fun PopupMenu() {
+    PopUpMenu(onDeleteCourse = {}, courseId = 0) {
+
+    }
+}
+
+@Composable
+private fun PopUpMenu(
+    onDeleteCourse: (Int) -> Unit,
+    courseId: Int,
+    onEditCourse: (Int) -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(20),
+        modifier = Modifier.fillMaxWidth(.5f)
+    ) {
+        Column(Modifier.fillMaxWidth()) {
+            TextButton(
+                onClick = { onDeleteCourse(courseId) },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = stringResource(id = R.string.delete))
+                    Icon(Icons.Default.Delete, "Delete")
+                }
+            }
+            Divider()
+            TextButton(onClick = { onEditCourse(courseId) }) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = stringResource(R.string.edit))
+                    Icon(Icons.Default.Edit, "Edit")
                 }
             }
         }

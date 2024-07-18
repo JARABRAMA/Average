@@ -92,11 +92,11 @@ fun GradeItem(name: String, qualification: Double, percentage: Double) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(Modifier.padding(Padding.smallPadding)) {
-                        Text(text = "Qualification")
+                        Text(text = stringResource(R.string.qualification))
                         Text(text = ": $qualification")
                     }
                     Row(Modifier.padding(Padding.smallPadding)) {
-                        Text(text = "Percentage")
+                        Text(text = stringResource(R.string.percentage))
                         Text(text = ": $percentage")
                     }
                 }

@@ -31,6 +31,11 @@ class CourseListViewModel @Inject constructor(private val courseService: CourseS
         updateCourses()
     }
 
+    fun onDeleteCourse(courseId: Int) {
+        viewModelScope.launch(Dispatchers.IO) { courseService.delete(courseId) }
+        updateCourses()
+    }
+
     private fun updateCourses() {
         viewModelScope.launch(Dispatchers.IO) {
             val courses = courseService.findAll()
@@ -38,5 +43,9 @@ class CourseListViewModel @Inject constructor(private val courseService: CourseS
                 _courses.value = courses
             }
         }
+    }
+
+    fun onEditCourse(courseId: Int) {
+        TODO("Not yet implemented")
     }
 }
