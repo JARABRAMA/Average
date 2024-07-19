@@ -1,6 +1,5 @@
 package com.jarabrama.average.ui.screens
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -59,7 +57,7 @@ import com.jarabrama.average.ui.theme.ui.Padding
 import com.jarabrama.average.ui.viewmodel.CourseListViewModel
 
 fun newCourse(navController: NavController) {
-    navController.navigate(Screen.NewCourse.route)
+    navController.navigate(Screen.NewCourseScreen)
 }
 
 @Composable
@@ -157,8 +155,6 @@ fun ListCourses(
     }
 }
 
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ItemCourse(
     course: Course,
@@ -181,7 +177,7 @@ fun ItemCourse(
                 )
             },
 
-    ) {
+        ) {
         Column(
             Modifier
                 .padding(Padding.normalPadding)
@@ -284,6 +280,6 @@ private fun PopUpMenu(
 }
 
 fun onClickCourse(navController: NavController, id: Int) {
-    navController.navigate("expanded-course/${id.toString()}")
+    navController.navigate(Screen.ExpandedCourseScreen(id))
 }
 

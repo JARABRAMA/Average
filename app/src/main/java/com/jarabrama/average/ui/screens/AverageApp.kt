@@ -10,19 +10,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navigation
+import androidx.navigation.toRoute
 import com.jarabrama.average.Screen
 import com.jarabrama.average.di.ExpandedCourseAssistedFactory
 import com.jarabrama.average.ui.navigation.BottomNavigationItem
@@ -77,23 +76,28 @@ private fun BottomBar(navController: NavController) {
 }
 
 @Composable
-fun AppNavHost(navController: NavHostController, paddingValues: PaddingValues, expandedCourseAssistedFactory: ExpandedCourseAssistedFactory) {
+fun AppNavHost(
+    navController: NavHostController,
+    paddingValues: PaddingValues,
+    expandedCourseAssistedFactory: ExpandedCourseAssistedFactory
+) {
 
-    NavHost(navController = navController, startDestination = Screen.Course.route) {
-        navigation(route = Screen.Course.route, startDestination = Screen.CourseList.route) {
-            composable(route = Screen.CourseList.route) {
+    NavHost(navController = navController, startDestination = Screen.CourseScreen) {
+        navigation<Screen.CourseScreen>(startDestination = Screen.CourseListScreen) {
+            composable<Screen.CourseListScreen> {
                 CourseListScreen(
                     viewModel = hiltViewModel(),
                     navController = navController,
-                    paddingValues
+                    paddingValues = paddingValues
                 )
             }
-            composable(route = Screen.NewCourse.route) {
+            composable<Screen.NewCourseScreen> {
                 NewCourseScreen(viewModel = hiltViewModel(), navController = navController)
             }
-            composable(route = Screen.ExpandedCourse().route, arguments = Screen.ExpandedCourse().navArguments) {
-                val courseId: Int = it.arguments?.getInt("course-id")?:0
-                val viewModel: ExpandedCourseViewModel = expandedCourseAssistedFactory.create(courseId)
+            composable<Screen.ExpandedCourseScreen> {
+                val args = it.toRoute<Screen.ExpandedCourseScreen>()
+                val viewModel: ExpandedCourseViewModel =
+                    expandedCourseAssistedFactory.create(args.courseId)
                 ExpandedCourseScreen(
                     viewModel = viewModel,
                     navController = navController,
@@ -101,21 +105,19 @@ fun AppNavHost(navController: NavHostController, paddingValues: PaddingValues, e
                 )
             }
         }
-        composable(route = Screen.GradeList.route) {
+        composable<Screen.GradeListScreen> {
             GradeListScreen(
                 navController = navController,
                 viewModel = hiltViewModel(),
                 paddingValues = paddingValues
             )
         }
-        composable(route = Screen.Settings.route) {
+        composable<Screen.SettingsScreen> {
             SettingsScreen(
                 navController = navController,
                 viewModel = hiltViewModel(),
                 paddingValues
             )
         }
-
-
     }
 }
