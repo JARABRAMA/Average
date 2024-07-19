@@ -1,22 +1,28 @@
 package com.jarabrama.average
 
-import androidx.navigation.NamedNavArgument
-import androidx.navigation.NavType
-import androidx.navigation.navArgument
+import kotlinx.serialization.Serializable
 
-sealed class Screen(
-    val route: String,
-    val navArguments: List<NamedNavArgument> = emptyList()
-) {
-    data object Course : Screen("course")
-    data object CourseList : Screen("course-list")
+sealed class Screen {
+    @Serializable
+    object CourseListScreen
 
-    data class ExpandedCourse(val courseId: String? = "course-id") : Screen(
-        "expanded-course/{$courseId}",
-        listOf(navArgument(courseId!!) { type = NavType.IntType })
-    )
+    @Serializable
+    object GradeListScreen
 
-    data object NewCourse : Screen("new-course")
-    data object GradeList : Screen("grade-list")
-    data object Settings : Screen("settings")
+    @Serializable
+    object SettingsScreen
+
+    @Serializable
+    object NewCourseScreen
+
+    @Serializable
+    data class ExpandedCourseScreen(val courseId: Int)
+
+    @Serializable
+    data class NewGradeScreen(val courseId: Int)
+
+    @Serializable
+    object CourseScreen
 }
+
+
