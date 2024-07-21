@@ -49,7 +49,6 @@ class CourseListViewModel @Inject constructor(private val courseService: CourseS
 
     }
 
-
     fun onEditCourse(courseId: Int) {
         TODO("Not yet implemented")
     }

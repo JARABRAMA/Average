@@ -175,7 +175,7 @@ fun ItemCourse(
     ) {
 
     var pressOffset by remember { mutableStateOf(DpOffset.Zero) }
-    var isMenu = remember { mutableStateOf(false) }
+    val isMenu = remember { mutableStateOf(false) }
     Card(
         modifier = Modifier
             .padding(Padding.cardList)
