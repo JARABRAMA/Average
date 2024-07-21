@@ -1,5 +1,6 @@
 package com.jarabrama.average.ui.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jarabrama.average.event.Event
@@ -16,10 +17,12 @@ import org.greenrobot.eventbus.Subscribe
 import javax.inject.Inject
 
 @HiltViewModel
-class CourseListViewModel @Inject constructor(private val courseService: CourseService): ViewModel() {
+class CourseListViewModel @Inject constructor(private val courseService: CourseService) :
+    ViewModel() {
 
     private val _courses = MutableStateFlow(listOf<Course>())
     val courses = _courses.asStateFlow()
+
 
     init {
         EventBus.getDefault().register(this)
@@ -31,9 +34,9 @@ class CourseListViewModel @Inject constructor(private val courseService: CourseS
         updateCourses()
     }
 
+
     fun onDeleteCourse(courseId: Int) {
-        viewModelScope.launch(Dispatchers.IO) { courseService.delete(courseId) }
-        updateCourses()
+        courseService.delete(courseId)
     }
 
     private fun updateCourses() {
@@ -43,7 +46,9 @@ class CourseListViewModel @Inject constructor(private val courseService: CourseS
                 _courses.value = courses
             }
         }
+
     }
+
 
     fun onEditCourse(courseId: Int) {
         TODO("Not yet implemented")

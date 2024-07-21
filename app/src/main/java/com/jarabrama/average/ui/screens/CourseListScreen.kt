@@ -19,10 +19,10 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -33,11 +33,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,7 +47,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpOffset
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.jarabrama.average.R
 import com.jarabrama.average.Screen
@@ -73,7 +72,7 @@ fun CourseListScreen(
         navController,
         paddingValues,
         viewModel::onDeleteCourse,
-        viewModel::onEditCourse
+        viewModel::onEditCourse,
     )
 }
 
@@ -83,7 +82,7 @@ private fun CourseListScreen(
     navController: NavController,
     paddingValues: PaddingValues,
     onDeleteCourse: (Int) -> Unit,
-    onEditCourse: (Int) -> Unit
+    onEditCourse: (Int) -> Unit,
 ) {
     Scaffold(
         topBar = { CoursesTopBar(title = stringResource(id = R.string.courses), navController) },
@@ -95,7 +94,13 @@ private fun CourseListScreen(
             )
         }
     ) {
-        ListCourses(courseList, it, navController, onDeleteCourse, onEditCourse)
+        ListCourses(
+            courseList,
+            it,
+            navController,
+            onDeleteCourse,
+            onEditCourse
+        )
     }
 }
 
@@ -150,7 +155,12 @@ fun ListCourses(
             .verticalScroll(rememberScrollState()),
     ) {
         courses.forEach {
-            ItemCourse(it, navController, onDeleteCourse, onEditCourse)
+            ItemCourse(
+                it,
+                navController,
+                onDeleteCourse,
+                onEditCourse
+            )
         }
     }
 }
@@ -160,18 +170,23 @@ fun ItemCourse(
     course: Course,
     navController: NavController,
     onDeleteCourse: (Int) -> Unit,
-    onEditCourse: (Int) -> Unit
-) {
-    var isMenuVisible by rememberSaveable { mutableStateOf(false) }
+    onEditCourse: (Int) -> Unit,
+
+    ) {
+
     var pressOffset by remember { mutableStateOf(DpOffset.Zero) }
-    var itemHeight by remember { mutableStateOf(0.dp) }
+    var isMenu = remember { mutableStateOf(false) }
     Card(
         modifier = Modifier
             .padding(Padding.cardList)
             .pointerInput(true) {
                 detectTapGestures(
+                    onTap = {
+                        onClickCourse(navController, course.id)
+                    },
                     onLongPress = {
-                        isMenuVisible = true
+                        // onShowMenu()
+                        isMenu.value = true
                         pressOffset = DpOffset(it.x.toDp(), it.y.toDp())
                     },
                 )
@@ -215,16 +230,16 @@ fun ItemCourse(
                     }
                 }
             }
-            DropdownMenu(
-                expanded = isMenuVisible,
-                onDismissRequest = {
-                    isMenuVisible = false
-                },
-                offset = pressOffset.copy(y = pressOffset.y, x = pressOffset.x)
-            ) {
-                PopUpMenu(onDeleteCourse, course.id, onEditCourse)
-            }
         }
+    }
+    DropdownMenu(
+        expanded = isMenu.value,
+        onDismissRequest = {
+            isMenu.value = false
+        },
+        offset = pressOffset.copy(y = pressOffset.y, x = pressOffset.x),
+    ) {
+        PopUpMenu(onDeleteCourse, course.id, onEditCourse, isMenu)
     }
 }
 
@@ -232,28 +247,32 @@ fun ItemCourse(
 @Preview
 @Composable
 private fun PopupMenu() {
-    PopUpMenu(onDeleteCourse = {}, courseId = 0) {
-
-    }
+    val preview = remember { mutableStateOf(true) }
+    PopUpMenu(onDeleteCourse = {}, courseId = 0, onEditCourse = {}, preview)
 }
 
 @Composable
 private fun PopUpMenu(
     onDeleteCourse: (Int) -> Unit,
     courseId: Int,
-    onEditCourse: (Int) -> Unit
+    onEditCourse: (Int) -> Unit,
+    isMenuVisible: MutableState<Boolean>
 ) {
     Surface(
         shape = RoundedCornerShape(20),
-        modifier = Modifier.fillMaxWidth(.5f)
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.fillMaxWidth()) {
             TextButton(
-                onClick = { onDeleteCourse(courseId) },
+                onClick = {
+                    onDeleteCourse(courseId)
+                    isMenuVisible.value = false
+                },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     contentColor = MaterialTheme.colorScheme.error
-                )
+                ),
+                modifier = Modifier.padding(Padding.horizontal)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -264,8 +283,11 @@ private fun PopUpMenu(
                     Icon(Icons.Default.Delete, "Delete")
                 }
             }
-            Divider()
-            TextButton(onClick = { onEditCourse(courseId) }) {
+            HorizontalDivider()
+            TextButton(
+                onClick = { onEditCourse(courseId); isMenuVisible.value = false },
+                Modifier.padding(Padding.horizontal)
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,

@@ -59,9 +59,7 @@ class GradeServiceImpl(private val gradeRepository: GradeRepository) : GradeServ
 
     override fun delete(id: Int) {
         val foundedGrade = gradeRepository.get(id) ?: throw GradeNotFoundException(id)
-        val grades = gradeRepository.findAll()
-        grades.remove(foundedGrade)
-        gradeRepository.save(grades = grades)
+        gradeRepository.delete(foundedGrade)
     }
 
     override fun get(id: Int): Grade = gradeRepository.get(id) ?: throw CourseNotFoundException(id)
