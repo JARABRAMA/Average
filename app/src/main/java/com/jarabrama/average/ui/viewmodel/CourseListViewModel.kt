@@ -37,6 +37,7 @@ class CourseListViewModel @Inject constructor(private val courseService: CourseS
 
     fun onDeleteCourse(courseId: Int) {
         courseService.delete(courseId)
+        updateCourses()
     }
 
     private fun updateCourses() {

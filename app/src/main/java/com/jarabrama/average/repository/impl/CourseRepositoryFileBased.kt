@@ -2,6 +2,7 @@ package com.jarabrama.average.repository.impl
 
 import android.content.Context
 import android.util.Log
+import com.jarabrama.average.exceptions.courseExceptions.CourseException
 
 import com.jarabrama.average.model.Course
 
@@ -78,9 +79,8 @@ class CourseRepositoryFileBased(private val context: Context) : CourseRepository
 
     override fun delete(id: Int) {
         val courses = findAll().toMutableList()
-        val x = courses.removeIf { it.id == id }
-        if (!x) {
-            Log.e("CourseRepositoryFileBased: deleting", "Course not found")
-        }
+        val course = courses.first {it.id == id}
+        courses.remove(course)
+        this.save(courses)
     }
 }

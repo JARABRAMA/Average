@@ -1,5 +1,6 @@
 package com.jarabrama.average.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,7 +39,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -47,6 +47,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.window.PopupProperties
 import androidx.navigation.NavController
 import com.jarabrama.average.R
 import com.jarabrama.average.Screen
@@ -174,7 +175,7 @@ fun ItemCourse(
 
     ) {
 
-    var pressOffset by remember { mutableStateOf(DpOffset.Zero) }
+    var pressOffset = remember { mutableStateOf(DpOffset.Zero) }
     val isMenu = remember { mutableStateOf(false) }
     Card(
         modifier = Modifier
@@ -187,7 +188,8 @@ fun ItemCourse(
                     onLongPress = {
                         // onShowMenu()
                         isMenu.value = true
-                        pressOffset = DpOffset(it.x.toDp(), it.y.toDp())
+                        pressOffset.value = DpOffset(it.x.toDp(), it.y.toDp())
+                        Log.i("PressOffset", pressOffset.value.toString())
                     },
                 )
             },
@@ -237,8 +239,11 @@ fun ItemCourse(
         onDismissRequest = {
             isMenu.value = false
         },
-        offset = pressOffset.copy(y = pressOffset.y, x = pressOffset.x),
+        offset = pressOffset.value,
+        properties = PopupProperties(
+        )
     ) {
+        Log.i("Offset", pressOffset.value.toString())
         PopUpMenu(onDeleteCourse, course.id, onEditCourse, isMenu)
     }
 }
