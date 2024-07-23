@@ -22,4 +22,8 @@
     <string name="goal_label">Set the average that you wish to obtain</string>
     <string name="average">Average</string>
     <string name="add_grade">Add Grade</string>
+    <string name="qualification">Qualification</string>
+    <string name="percentage">Percentage</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
 </resources>

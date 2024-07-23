@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
     id("kotlin-kapt")
     id("com.google.dagger.hilt.android")
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -70,18 +71,17 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    val navVersion = "2.7.7" // navigation
-    implementation("androidx.navigation:navigation-compose:$navVersion")
 
-    val eventBusVersion = "3.3.1" // event bus
-    implementation("org.greenrobot:eventbus:$eventBusVersion")
+    implementation(libs.navigation.compose)
 
-    val hiltVersion = "2.48" // dagger hilt
-    implementation("com.google.dagger:hilt-android:$hiltVersion")
-    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
-    kapt("com.google.dagger:hilt-android-compiler:$hiltVersion")
 
-    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation(libs.eventbus)
+
+    implementation(libs.hilt.android)
+    implementation(libs.androidx.hilt.navigation.compose)
+    kapt(libs.hilt.android.compiler)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.kotlinx.serialization.json)
 }
 
 kapt {

@@ -25,6 +25,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import com.jarabrama.average.R
+import com.jarabrama.average.Screen
 import com.jarabrama.average.model.Grade
 import com.jarabrama.average.ui.theme.ui.Padding
 import com.jarabrama.average.ui.viewmodel.ExpandedCourseViewModel
@@ -75,7 +76,7 @@ fun ExpandedCourseScreen(
 }
 
 fun onNewGrade(navController: NavController, courseId: Int) {
-    navController.navigate("new-grade/${courseId.toString()}")
+    navController.navigate(Screen.NewGradeScreen(courseId))
 }
 
 @Composable

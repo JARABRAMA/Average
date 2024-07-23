@@ -1,5 +1,7 @@
 package com.jarabrama.average.ui.screens
 
+import android.util.Log
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,26 +15,40 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.window.PopupProperties
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.jarabrama.average.R
 import com.jarabrama.average.Screen
 import com.jarabrama.average.model.Course
@@ -41,24 +57,33 @@ import com.jarabrama.average.ui.theme.ui.Padding
 import com.jarabrama.average.ui.viewmodel.CourseListViewModel
 
 fun newCourse(navController: NavController) {
-    navController.navigate(Screen.NewCourse.route)
+    navController.navigate(Screen.NewCourseScreen)
 }
 
 @Composable
 fun CourseListScreen(
     viewModel: CourseListViewModel,
     navController: NavController,
-    paddingValues: PaddingValues
+    paddingValues: PaddingValues,
 ) {
     val courses by viewModel.courses.collectAsState()
-    CourseListScreen(courseList = courses, navController, paddingValues)
+
+    CourseListScreen(
+        courseList = courses,
+        navController,
+        paddingValues,
+        viewModel::onDeleteCourse,
+        viewModel::onEditCourse,
+    )
 }
 
 @Composable
 private fun CourseListScreen(
     courseList: List<Course>,
     navController: NavController,
-    paddingValues: PaddingValues
+    paddingValues: PaddingValues,
+    onDeleteCourse: (Int) -> Unit,
+    onEditCourse: (Int) -> Unit,
 ) {
     Scaffold(
         topBar = { CoursesTopBar(title = stringResource(id = R.string.courses), navController) },
@@ -70,7 +95,13 @@ private fun CourseListScreen(
             )
         }
     ) {
-        ListCourses(courseList, it, navController)
+        ListCourses(
+            courseList,
+            it,
+            navController,
+            onDeleteCourse,
+            onEditCourse
+        )
     }
 }
 
@@ -104,13 +135,20 @@ fun CoursesTopBar(title: String, navController: NavController) {
             IconButton(onClick = { /* Todo: show the average and the analysis of the semester */ }) {
                 Icon(imageVector = Icons.Default.MoreVert, contentDescription = "details")
             }
-        }
+        },
+        colors = TopAppBarDefaults.topAppBarColors()
     )
 }
 
 
 @Composable
-fun ListCourses(courses: List<Course>, paddingValues: PaddingValues, navController: NavController) {
+fun ListCourses(
+    courses: List<Course>,
+    paddingValues: PaddingValues,
+    navController: NavController,
+    onDeleteCourse: (Int) -> Unit,
+    onEditCourse: (Int) -> Unit
+) {
     Column(
         Modifier
             .padding(paddingValues)
@@ -118,26 +156,45 @@ fun ListCourses(courses: List<Course>, paddingValues: PaddingValues, navControll
             .verticalScroll(rememberScrollState()),
     ) {
         courses.forEach {
-            ItemCourse(it, navController)
+            ItemCourse(
+                it,
+                navController,
+                onDeleteCourse,
+                onEditCourse
+            )
         }
     }
 }
 
-@Preview
 @Composable
-private fun ItemCoursePreview() {
-    val course = Course(3, "Python fundamentals", 4)
-    ItemCourse(course = course, rememberNavController())
-}
+fun ItemCourse(
+    course: Course,
+    navController: NavController,
+    onDeleteCourse: (Int) -> Unit,
+    onEditCourse: (Int) -> Unit,
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ItemCourse(course: Course, navController: NavController) {
-    Card(
-        modifier = Modifier.padding(Padding.cardList),
-        shape = RoundedCornerShape(8),
-        onClick = { onClickCourse(navController, course.id) }
     ) {
+
+    var pressOffset = remember { mutableStateOf(DpOffset.Zero) }
+    val isMenu = remember { mutableStateOf(false) }
+    Card(
+        modifier = Modifier
+            .padding(Padding.cardList)
+            .pointerInput(true) {
+                detectTapGestures(
+                    onTap = {
+                        onClickCourse(navController, course.id)
+                    },
+                    onLongPress = {
+                        // onShowMenu()
+                        isMenu.value = true
+                        pressOffset.value = DpOffset(it.x.toDp(), it.y.toDp())
+                        Log.i("PressOffset", pressOffset.value.toString())
+                    },
+                )
+            },
+
+        ) {
         Column(
             Modifier
                 .padding(Padding.normalPadding)
@@ -172,8 +229,77 @@ fun ItemCourse(course: Course, navController: NavController) {
                             Text(text = stringResource(id = R.string.average))
                             // Todo: set the average as a text in this place
                         }
-
                     }
+                }
+            }
+        }
+    }
+    DropdownMenu(
+        expanded = isMenu.value,
+        onDismissRequest = {
+            isMenu.value = false
+        },
+        offset = pressOffset.value,
+        properties = PopupProperties(
+        )
+    ) {
+        Log.i("Offset", pressOffset.value.toString())
+        PopUpMenu(onDeleteCourse, course.id, onEditCourse, isMenu)
+    }
+}
+
+
+@Preview
+@Composable
+private fun PopupMenu() {
+    val preview = remember { mutableStateOf(true) }
+    PopUpMenu(onDeleteCourse = {}, courseId = 0, onEditCourse = {}, preview)
+}
+
+@Composable
+private fun PopUpMenu(
+    onDeleteCourse: (Int) -> Unit,
+    courseId: Int,
+    onEditCourse: (Int) -> Unit,
+    isMenuVisible: MutableState<Boolean>
+) {
+    Surface(
+        shape = RoundedCornerShape(20),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.fillMaxWidth()) {
+            TextButton(
+                onClick = {
+                    onDeleteCourse(courseId)
+                    isMenuVisible.value = false
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.error
+                ),
+                modifier = Modifier.padding(Padding.horizontal)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = stringResource(id = R.string.delete))
+                    Icon(Icons.Default.Delete, "Delete")
+                }
+            }
+            HorizontalDivider()
+            TextButton(
+                onClick = { onEditCourse(courseId); isMenuVisible.value = false },
+                Modifier.padding(Padding.horizontal)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = stringResource(R.string.edit))
+                    Icon(Icons.Default.Edit, "Edit")
                 }
             }
         }
@@ -181,6 +307,6 @@ fun ItemCourse(course: Course, navController: NavController) {
 }
 
 fun onClickCourse(navController: NavController, id: Int) {
-    navController.navigate("expanded-course/${id.toString()}")
+    navController.navigate(Screen.ExpandedCourseScreen(id))
 }
 

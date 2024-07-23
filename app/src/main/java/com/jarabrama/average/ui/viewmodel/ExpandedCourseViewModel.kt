@@ -3,12 +3,10 @@ package com.jarabrama.average.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jarabrama.average.model.Grade
-import com.jarabrama.average.repository.SettingsRepository
 import com.jarabrama.average.service.CourseService
 import com.jarabrama.average.service.GradeService
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,11 +24,9 @@ class ExpandedCourseViewModel @AssistedInject constructor(
     private val _grades = MutableStateFlow(listOf<Grade>())
     val grades = _grades.asStateFlow()
 
-
     init {
         updateGrades(gradeService, courseId)
     }
-
 
     private fun updateGrades(
         gradeService: GradeService,
