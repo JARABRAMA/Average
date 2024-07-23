@@ -29,7 +29,7 @@ class CourseServiceImpl(private val courseRepository: CourseRepository) : Course
 
     override fun update(course: Course): Course {
         val courses = findAll().toMutableList()
-        val index: Int = courses.indexOf(course)
+        val index: Int = courses.indexOfFirst { it.id == course.id }
         if (index == -1) {
             throw CourseNotFoundException(course.id)
         }
