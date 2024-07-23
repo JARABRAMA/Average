@@ -288,20 +288,6 @@ private fun PopUpMenu(
                     Icon(Icons.Default.Delete, "Delete")
                 }
             }
-            HorizontalDivider()
-            TextButton(
-                onClick = { onEditCourse(courseId); isMenuVisible.value = false },
-                Modifier.padding(Padding.horizontal)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(text = stringResource(R.string.edit))
-                    Icon(Icons.Default.Edit, "Edit")
-                }
-            }
         }
     }
 }
