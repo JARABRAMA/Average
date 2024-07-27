@@ -47,7 +47,6 @@ class NewCourseViewModel @Inject constructor(
             _errorState.value = true
             Log.e("New course view model", _errorMessage.value)
         } else {
-            toTitleCase()
             try {
                 val creditsValue: Int = parseInt(_credits.value)
                 courseService.newCourse(_name.value, creditsValue)

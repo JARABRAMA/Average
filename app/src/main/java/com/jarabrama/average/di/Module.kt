@@ -36,8 +36,11 @@ class Module {
     }
 
     @Provides
-    fun provideGradeService(gradeRepository: GradeRepository): GradeService {
-        return GradeServiceImpl(gradeRepository)
+    fun provideGradeService(
+        gradeRepository: GradeRepository,
+        settingsRepository: SettingsRepository
+    ): GradeService {
+        return GradeServiceImpl(gradeRepository, settingsRepository)
     }
 
     @Provides

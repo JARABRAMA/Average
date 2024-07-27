@@ -3,7 +3,6 @@ package com.jarabrama.average.ui.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jarabrama.average.event.Event
 import com.jarabrama.average.exceptions.courseExceptions.CourseNotFoundException
 import com.jarabrama.average.model.Grade
@@ -18,12 +17,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.greenrobot.eventbus.EventBus
+import org.greenrobot.eventbus.Subscribe
 import java.lang.Integer.parseInt
 
 class ExpandedCourseViewModel @AssistedInject constructor(
-    gradeService: GradeService,
+    private val gradeService: GradeService,
     private val courseService: CourseService,
-    @Assisted courseId: Int
+    @Assisted private val  courseId: Int
 ) : ViewModel() {
     private val _course = MutableStateFlow(courseService.get(courseId))
     val course = _course.asStateFlow()
@@ -41,10 +41,24 @@ class ExpandedCourseViewModel @AssistedInject constructor(
     val editCreditValue = _editCreditValue.asStateFlow()
 
     private val _showSnackbar = MutableStateFlow(false)
-    val showSnackbar = _showSnackbar.asStateFlow()
 
     private val _errorMessage = MutableStateFlow("")
-    val errorMessage = _errorMessage.asStateFlow()
+
+    init {
+        EventBus.getDefault().register(this)
+        updateGrades()
+    }
+
+    @Subscribe
+    fun onGradeAdded(event: Event.GradeAddedEvent) {
+        updateGrades()
+    }
+
+    private fun updateGrades() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _grades.value = gradeService.findAllByCourseId(courseId)
+        }
+    }
 
     fun onNameChange(value: String) {
         _editNameValue.value = value

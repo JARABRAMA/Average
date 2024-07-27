@@ -26,4 +26,7 @@
     <string name="percentage">Percentage</string>
     <string name="delete">Delete</string>
     <string name="edit">Edit</string>
+    <string name="new_grade">New Grade</string>
+    <string name="grade_details">Enter the Grade details</string>
+    <string name="grade_name">Grade Name</string>
 </resources>

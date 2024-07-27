@@ -167,17 +167,17 @@ fun FormNewCourse(
         Spacer(modifier = Modifier.padding(Padding.smallPadding))
         Row(Modifier.fillMaxWidth(.8f), horizontalArrangement = Arrangement.End) {
             Button({
-                keyboardController?.hide()
-                onSaveClick(
-                    onSave,
-                    { getErrorMessage() },
-                    scope,
-                    snackBarHostState,
-                    { getErrorState() },
-                    navController,
-                    onDismissError
-                )
-            }) {
+                    keyboardController?.hide()
+                    onSaveClick(
+                        onSave,
+                        { getErrorMessage() },
+                        scope,
+                        snackBarHostState,
+                        { getErrorState() },
+                        navController,
+                        onDismissError
+                    )
+                }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(text = stringResource(R.string.save), fontSize = FontSizes.normal)
                 }

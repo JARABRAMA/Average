@@ -1,7 +1,6 @@
 package com.jarabrama.average.ui.screens
 
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -24,22 +23,26 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.jarabrama.average.Screen
 import com.jarabrama.average.di.ExpandedCourseAssistedFactory
+import com.jarabrama.average.di.NewGradeAssistedFactory
 import com.jarabrama.average.ui.navigation.BottomNavigationItem
 import com.jarabrama.average.ui.viewmodel.ExpandedCourseViewModel
+import com.jarabrama.average.ui.viewmodel.NewGradeViewModel
 
 @Composable
-fun AverageApp(expandedCourseAssistedFactory: ExpandedCourseAssistedFactory) {
+fun AverageApp(
+    expandedCourseAssistedFactory: ExpandedCourseAssistedFactory,
+    newGradeAssistedFactory: NewGradeAssistedFactory
+) {
 
     val navController = rememberNavController()
 
     Scaffold(
         bottomBar = { BottomBar(navController = navController) }
     ) {
-        AppNavHost(navController = navController, it, expandedCourseAssistedFactory)
+        AppNavHost(navController = navController, it, expandedCourseAssistedFactory, newGradeAssistedFactory)
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BottomBar(navController: NavController) {
     val navigationItems: List<BottomNavigationItem> = listOf(
@@ -79,7 +82,8 @@ private fun BottomBar(navController: NavController) {
 fun AppNavHost(
     navController: NavHostController,
     paddingValues: PaddingValues,
-    expandedCourseAssistedFactory: ExpandedCourseAssistedFactory
+    expandedCourseAssistedFactory: ExpandedCourseAssistedFactory,
+    newGradeAssistedFactory: NewGradeAssistedFactory
 ) {
 
     NavHost(navController = navController, startDestination = Screen.CourseScreen) {
@@ -103,6 +107,12 @@ fun AppNavHost(
                     navController = navController,
                     parentPaddingValues = paddingValues
                 )
+            }
+            composable<Screen.NewGradeScreen> {
+                val args = it.toRoute<Screen.NewGradeScreen>()
+                val viewModel: NewGradeViewModel =
+                    newGradeAssistedFactory.create(args.courseId)
+                NewGradeScreen(viewModel = viewModel, navController = navController, parentPadding = paddingValues)
             }
         }
         composable<Screen.GradeListScreen> {
