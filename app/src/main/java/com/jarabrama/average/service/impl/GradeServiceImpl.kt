@@ -3,12 +3,14 @@ package com.jarabrama.average.service.impl
 import com.jarabrama.average.exceptions.courseExceptions.CourseNotFoundException
 import com.jarabrama.average.exceptions.gradeExceptions.GradeNotFoundException
 import com.jarabrama.average.exceptions.gradeExceptions.InvalidPercentageException
+import com.jarabrama.average.exceptions.gradeExceptions.InvalidQualificationException
 import com.jarabrama.average.exceptions.gradeExceptions.SavingGradeException
 import com.jarabrama.average.model.Grade
 import com.jarabrama.average.repository.GradeRepository
+import com.jarabrama.average.repository.SettingsRepository
 import com.jarabrama.average.service.GradeService
 
-class GradeServiceImpl(private val gradeRepository: GradeRepository) : GradeService {
+class GradeServiceImpl(private val gradeRepository: GradeRepository, private val settingsRepository: SettingsRepository) : GradeService {
 
     override fun findAll(): List<Grade> = gradeRepository.findAll()
     override fun findAllByCourseId(courseId: Int): List<Grade> =
@@ -21,17 +23,22 @@ class GradeServiceImpl(private val gradeRepository: GradeRepository) : GradeServ
         percentage: Double
     ): Grade {
         // percentage validation
-        val restingPercentage = 100.0 - (findAllByCourseId(courseId).sumOf { it.percentage })
-        if (percentage > restingPercentage) {
+        val availablePercentage = 100.0 - (findAllByCourseId(courseId).sumOf { it.percentage })
+        val settings = settingsRepository.getSettings()
+        if (percentage > availablePercentage) {
             throw InvalidPercentageException(
-                restingPercentage = restingPercentage,
+                restingPercentage = availablePercentage,
                 inputPercentage = percentage
             )
         }
+        if (qualification !in settings.minQualification..settings.maxQualification) {
+            throw InvalidQualificationException(qualification)
+        }
 
         val grades: MutableList<Grade> = gradeRepository.findAll()
+        val newId: Int = (gradeRepository.findAll().maxOfOrNull { it.id } ?: 0) + 1
         val newGrade = Grade(
-            id = grades.size,
+            id = newId,
             courseId = courseId,
             name = name,
             qualification = qualification,
