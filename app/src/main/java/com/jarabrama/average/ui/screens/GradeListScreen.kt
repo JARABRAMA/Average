@@ -1,6 +1,9 @@
 package com.jarabrama.average.ui.screens
 
+import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -17,10 +20,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.jarabrama.average.R
 import com.jarabrama.average.model.Grade
@@ -70,6 +75,8 @@ fun GradeItem(name: String, qualification: Double, percentage: Double) {
             .fillMaxWidth()
             .padding(Padding.normalPadding)
     ) {
+
+
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 modifier = Modifier.padding(Padding.normalPadding),
@@ -87,20 +94,45 @@ fun GradeItem(name: String, qualification: Double, percentage: Double) {
                     fontSize = FontSizes.normal,
                     fontWeight = FontWeight.Bold
                 )
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(Modifier.padding(Padding.smallPadding)) {
-                        Text(text = stringResource(R.string.qualification))
-                        Text(text = ": $qualification")
-                    }
-                    Row(Modifier.padding(Padding.smallPadding)) {
-                        Text(text = stringResource(R.string.percentage))
-                        Text(text = ": $percentage")
+                BoxWithConstraints {
+                    val localConfig = LocalConfiguration.current
+                    val screenWidth = localConfig.screenWidthDp
+                    Log.i("Screen", "width: $screenWidth")
+                    if(maxWidth > 300.dp) {
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            LabelsGrade(qualification, percentage)
+                        }
+                    } else {
+                        Column {
+                            LabelsGrade(qualification, percentage)
+                        }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun LabelsGrade(qualification: Double, percentage: Double) {
+    Row(Modifier.padding(Padding.smallPadding)) {
+        Text(text = stringResource(R.string.qualification))
+        Text(text = ": $qualification")
+    }
+    Row(Modifier.padding(Padding.smallPadding)) {
+        Text(text = stringResource(R.string.percentage))
+        Text(text = ": $percentage")
+    }
+}
+
+@Composable
+private fun CourseContent(
+    name: String,
+    qualification: Double,
+    percentage: Double
+) {
+
 }
