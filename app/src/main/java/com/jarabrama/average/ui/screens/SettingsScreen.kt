@@ -1,6 +1,5 @@
 package com.jarabrama.average.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -9,9 +8,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -26,7 +27,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -73,7 +73,6 @@ fun SettingsScreen(
 
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     minQualification: String,
@@ -118,7 +117,7 @@ fun SettingsScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { values ->
         SettingsComponents(
-            paddingValues = values,
+            parentPadding = values,
             minQualification = minQualification,
             maxQualification = maxQualification,
             goal = goal,
@@ -173,7 +172,8 @@ private fun SaveFloatingButton(
     snackbarHostState: SnackbarHostState,
     scope: CoroutineScope
 ) {
-    FloatingActionButton(
+    ExtendedFloatingActionButton(
+        modifier = Modifier.padding(paddingValues),
         onClick = {
             onSaveSettings(
                 onSave,
@@ -185,25 +185,9 @@ private fun SaveFloatingButton(
                 navController
             )
         },
-        modifier = Modifier.padding(paddingValues)
-    ) {
-        Row(
-            modifier = Modifier.padding(Padding.smallPadding),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.check),
-                contentDescription = "Set",
-                modifier = Modifier.padding(Padding.smallPadding)
-            )
-            Text(
-                text = stringResource(R.string.save),
-                modifier = Modifier.padding(Padding.smallPadding)
-            )
-            Spacer(modifier = Modifier.padding(Padding.smallPadding))
-        }
-    }
+        text = { Text(text = stringResource(id = R.string.save)) },
+        icon = { Icon(Icons.Default.Check, "Save") }
+    )
 }
 
 private fun onSaveSettings(
@@ -219,8 +203,7 @@ private fun onSaveSettings(
     val errorState = getErrorState()
     if (errorState) {
         val errorMessage = getErrorMessage()
-        showSanckbar(scope, snackbarHostState, errorMessage)
-        onDismiss()
+        showSanckbar(scope, snackbarHostState, errorMessage, onDismiss)
     } else {
         onBack(navController)
     }
@@ -230,21 +213,22 @@ private fun onSaveSettings(
 private fun showSanckbar(
     scope: CoroutineScope,
     snackbarHostState: SnackbarHostState,
-    errorMessage: String
+    errorMessage: String,
+    onDismiss: () ->  Unit
 ) {
     scope.launch {
         snackbarHostState.showSnackbar(
             message = errorMessage,
-            actionLabel = "Dismiss",
             duration = SnackbarDuration.Short,
             withDismissAction = true
         )
+        onDismiss()
     }
 }
 
 @Composable
 fun SettingsComponents(
-    paddingValues: PaddingValues,
+    parentPadding: PaddingValues,
     minQualification: String,
     maxQualification: String,
     goal: String,
@@ -252,13 +236,17 @@ fun SettingsComponents(
     onMaxQualificationChange: (String) -> Unit,
     onGoalChange: (String) -> Unit,
 ) {
-    Column(Modifier.padding(paddingValues)) {
-        Row {
-            CardMinQualification(minQualification) { onMinQualificationChange(it) }
-            CardMaxQualification(maxQualification) { onMaxQualificationChange(it) }
+
+    Column(Modifier.padding(parentPadding)) {
+        Column(Modifier.padding(Padding.cardList)) {
+            Row {
+                CardMinQualification(minQualification) { onMinQualificationChange(it) }
+                CardMaxQualification(maxQualification) { onMaxQualificationChange(it) }
+            }
+            CardGoal(goal) { onGoalChange(it) }
         }
-        CardGoal(goal) { onGoalChange(it) }
     }
+
 }
 
 @Composable
