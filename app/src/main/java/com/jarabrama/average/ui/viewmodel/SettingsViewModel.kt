@@ -1,9 +1,12 @@
 package com.jarabrama.average.ui.viewmodel
 
+import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jarabrama.average.exceptions.settingExceptions.SettingException
 import com.jarabrama.average.model.Settings
-import com.jarabrama.average.repository.SettingsRepository
+import com.jarabrama.average.service.SettingsService
+import com.jarabrama.average.utils.Strings
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +18,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val settingsRepository: SettingsRepository
+    private val settingsService: SettingsService
 ) : ViewModel() {
     private lateinit var settings: Settings
 
@@ -29,7 +32,7 @@ class SettingsViewModel @Inject constructor(
     val goal = _goal.asStateFlow()
 
     private val _errorState = MutableStateFlow(false)
-    private val errorMessage = "Settings values must be decimal numbers"
+    private val _errorMessage = MutableStateFlow("")
 
     init {
         getValues()
@@ -49,7 +52,7 @@ class SettingsViewModel @Inject constructor(
 
     private fun getValues() {
         viewModelScope.launch(Dispatchers.IO) {
-            val settings = settingsRepository.getSettings()
+            val settings = settingsService.getSettings()
             withContext(Dispatchers.Main) {
                 _maxQualification.value = settings.maxQualification.toString()
                 _minQualification.value = settings.minQualification.toString()
@@ -65,15 +68,19 @@ class SettingsViewModel @Inject constructor(
                 minQualification = parseDouble(_minQualification.value),
                 goal = parseDouble(_goal.value)
             )
-            viewModelScope.launch(Dispatchers.IO) {
-                settingsRepository.setSettings(settings = settings)
-            }
+            settingsService.setSettings(settings = settings)
         } catch (e: NumberFormatException) {
             _errorState.value = true
+            _errorMessage.value = Strings.ERROR_SETTINGS_TYPE
+        } catch (e: SettingException) {
+            _errorState.value = true
+            _errorMessage.value = e.message ?: Strings.ERROR
         }
     }
 
-    fun onDismiss() = !_errorState.value
+    fun onDismiss() {
+        _errorState.value = false
+    }
     fun geErrorState(): Boolean = _errorState.value
-    fun getErrorMessage(): String = errorMessage
+    fun getErrorMessage(): String = _errorMessage.value
 }

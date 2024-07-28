@@ -15,7 +15,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import com.jarabrama.average.service.CourseService
 import com.jarabrama.average.service.GradeService
+import com.jarabrama.average.service.SettingsService
 import com.jarabrama.average.service.impl.GradeServiceImpl
+import com.jarabrama.average.service.impl.SettingsServiceImpl
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -46,5 +48,10 @@ class Module {
     @Provides
     fun provideSettingsRepository(@ApplicationContext context: Context): SettingsRepository {
         return SettingsRepositoryFileBased(context)
+    }
+
+    @Provides
+    fun provideSettingsService(settingsRepository: SettingsRepository): SettingsService {
+        return SettingsServiceImpl(settingsRepository)
     }
 }
