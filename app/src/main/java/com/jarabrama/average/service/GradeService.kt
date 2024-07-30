@@ -10,4 +10,5 @@ interface GradeService {
     fun delete(id: Int)
     fun get(id: Int): Grade
     fun getAverage(courseId: Int): Double
+    fun getAnalysis(courseId: Int ): String
 }

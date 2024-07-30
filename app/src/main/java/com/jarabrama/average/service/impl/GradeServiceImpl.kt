@@ -10,7 +10,10 @@ import com.jarabrama.average.repository.GradeRepository
 import com.jarabrama.average.repository.SettingsRepository
 import com.jarabrama.average.service.GradeService
 
-class GradeServiceImpl(private val gradeRepository: GradeRepository, private val settingsRepository: SettingsRepository) : GradeService {
+class GradeServiceImpl(
+    private val gradeRepository: GradeRepository,
+    private val settingsRepository: SettingsRepository
+) : GradeService {
 
     override fun findAll(): List<Grade> = gradeRepository.findAll()
     override fun findAllByCourseId(courseId: Int): List<Grade> =
@@ -23,7 +26,7 @@ class GradeServiceImpl(private val gradeRepository: GradeRepository, private val
         percentage: Double
     ): Grade {
         // percentage validation
-        val availablePercentage = 100.0 - (findAllByCourseId(courseId).sumOf { it.percentage })
+        val availablePercentage = getAvailablePercentage(courseId)
         val settings = settingsRepository.getSettings()
         if (percentage > availablePercentage) {
             throw InvalidPercentageException(
@@ -53,6 +56,9 @@ class GradeServiceImpl(private val gradeRepository: GradeRepository, private val
         }
     }
 
+    private fun getAvailablePercentage(courseId: Int) =
+        100.0 - (findAllByCourseId(courseId).sumOf { it.percentage })
+
     override fun update(grade: Grade): Grade {
         val grades = gradeRepository.findAll()
         val index: Int = grades.indexOf(grade)
@@ -70,8 +76,36 @@ class GradeServiceImpl(private val gradeRepository: GradeRepository, private val
     }
 
     override fun get(id: Int): Grade = gradeRepository.get(id) ?: throw CourseNotFoundException(id)
+    override fun getAverage(courseId: Int): Double =
+        findAllByCourseId(courseId).sumOf { it.qualification * (it.percentage / 100) }
 
-    override fun getAverage(courseId: Int): Double {
-        return findAllByCourseId(courseId).sumOf { it.qualification * (it.percentage / 100) }
+
+    override fun getAnalysis(courseId: Int): String {
+        val currentAverage = getAverage(courseId)
+        val availablePercentage = getAvailablePercentage(courseId)
+        val settings = settingsRepository.getSettings()
+        val goal = settings.goal
+        val maxQualification = settings.maxQualification
+        val neededQualification =
+            (goal - currentAverage) / (availablePercentage / 100)
+
+        if (availablePercentage == 0.0) {
+            return if (currentAverage > goal) {
+                "Congratulations! you have overcome your goal with an average of $currentAverage"
+            } else if (currentAverage == goal) {
+                "Congratulations! you have reach your goal of $goal"
+            } else {
+                "You do not have reach your goal, your average was $currentAverage"
+            }
+        } else {
+            return if (neededQualification > maxQualification) {
+                "You will not reach your goal on this occasion, the needed " +
+                        "qualification overcomes the qualification limit: $neededQualification"
+            } else if (neededQualification <= settings.minQualification) {
+                "Great! you have reach your goal before complete total qualification percentage"
+            } else {
+                "You need a qualification of $neededQualification in the $availablePercentage% of resting evaluative percentage"
+            }
+        }
     }
 }

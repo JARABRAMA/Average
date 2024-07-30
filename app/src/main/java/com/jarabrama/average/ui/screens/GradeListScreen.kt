@@ -127,12 +127,3 @@ private fun LabelsGrade(qualification: Double, percentage: Double) {
         Text(text = ": $percentage")
     }
 }
-
-@Composable
-private fun CourseContent(
-    name: String,
-    qualification: Double,
-    percentage: Double
-) {
-
-}
