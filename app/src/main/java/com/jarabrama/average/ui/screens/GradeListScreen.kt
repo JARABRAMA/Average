@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -20,6 +21,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -35,18 +37,19 @@ import com.jarabrama.average.ui.viewmodel.GradeListViewModel
 
 @Composable
 fun GradeListScreen(
-    navController: NavController,
     viewModel: GradeListViewModel,
     paddingValues: PaddingValues
 ) {
     val grades by viewModel.grades.collectAsState()
-    GradeListScreen(grades = grades)
+    GradeListScreen(grades = grades, paddingValues)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GradeListScreen(grades: List<Grade>) {
+fun GradeListScreen(grades: List<Grade>, parentPadding: PaddingValues) {
+    val scaffoldPadding = PaddingValues(bottom = parentPadding.calculateBottomPadding())
     Scaffold(
+        modifier = Modifier.padding(scaffoldPadding),
         topBar = { TopAppBar(title = { Text(text = stringResource(id = R.string.grades)) }) }
     ) { paddingValues ->
         ListGrades(grades, paddingValues)
@@ -55,9 +58,13 @@ fun GradeListScreen(grades: List<Grade>) {
 
 @Composable
 fun ListGrades(grades: List<Grade>, paddingValues: PaddingValues) {
-    Column(Modifier.padding(paddingValues)) {
-        grades.forEach {
-            GradeItem(it.name, it.qualification, it.percentage)
+    LazyColumn(
+        Modifier
+            .padding(paddingValues)
+            .fillMaxWidth()) {
+        items(grades.size) {
+            val grade = grades[it]
+            GradeItem(grade.name, grade.qualification, grade.percentage)
         }
     }
 }
@@ -98,7 +105,7 @@ fun GradeItem(name: String, qualification: Double, percentage: Double) {
                     val localConfig = LocalConfiguration.current
                     val screenWidth = localConfig.screenWidthDp
                     Log.i("Screen", "width: $screenWidth")
-                    if(maxWidth > 300.dp) {
+                    if (maxWidth > 300.dp) {
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.fillMaxWidth()

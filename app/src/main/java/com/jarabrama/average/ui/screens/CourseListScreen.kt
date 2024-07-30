@@ -16,14 +16,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -81,17 +79,19 @@ fun CourseListScreen(
 private fun CourseListScreen(
     courseList: List<Course>,
     navController: NavController,
-    paddingValues: PaddingValues,
+    parentPadding: PaddingValues,
     onDeleteCourse: (Int) -> Unit,
     onEditCourse: (Int) -> Unit,
 ) {
+    val scaffoldPadding = PaddingValues(bottom = parentPadding.calculateBottomPadding())
     Scaffold(
+        modifier = Modifier.padding(scaffoldPadding),
         topBar = { CoursesTopBar(title = stringResource(id = R.string.courses), navController) },
         floatingActionButton = {
             AddFloatingButton(
                 stringResource(R.string.add_course),
-                navController,
-                paddingValues
+                navController
+
             )
         }
     ) {
@@ -106,10 +106,9 @@ private fun CourseListScreen(
 }
 
 @Composable
-fun AddFloatingButton(label: String, navController: NavController, paddingValues: PaddingValues) {
+fun AddFloatingButton(label: String, navController: NavController) {
     FloatingActionButton(
         onClick = { newCourse(navController) },
-        modifier = Modifier.padding(paddingValues)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
