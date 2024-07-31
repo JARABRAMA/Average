@@ -28,8 +28,8 @@ class Module {
     }
 
     @Provides
-    fun provideCourseService(courseRepository: CourseRepository): CourseService {
-        return CourseServiceImpl(courseRepository)
+    fun provideCourseService(courseRepository: CourseRepository, gradeService: GradeService): CourseService {
+        return CourseServiceImpl(courseRepository, gradeService)
     }
 
     @Provides

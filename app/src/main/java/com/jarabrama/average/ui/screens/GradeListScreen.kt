@@ -47,6 +47,7 @@ fun GradeListScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GradeListScreen(grades: List<Grade>, parentPadding: PaddingValues) {
+
     val scaffoldPadding = PaddingValues(bottom = parentPadding.calculateBottomPadding())
     Scaffold(
         modifier = Modifier.padding(scaffoldPadding),

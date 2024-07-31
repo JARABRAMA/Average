@@ -56,7 +56,7 @@ class GradeServiceImpl(
         }
     }
 
-    private fun getAvailablePercentage(courseId: Int) =
+    override fun getAvailablePercentage(courseId: Int) =
         100.0 - (findAllByCourseId(courseId).sumOf { it.percentage })
 
     override fun update(grade: Grade): Grade {
@@ -76,8 +76,17 @@ class GradeServiceImpl(
     }
 
     override fun get(id: Int): Grade = gradeRepository.get(id) ?: throw CourseNotFoundException(id)
+
     override fun getAverage(courseId: Int): Double =
         findAllByCourseId(courseId).sumOf { it.qualification * (it.percentage / 100) }
+
+    override fun getExpectedAverage(courseId: Int): Double {
+        val currentAverage = getAverage(courseId)
+        val availablePercentage = getAvailablePercentage(courseId)
+        val settings = settingsRepository.getSettings()
+        val goal = settings.goal
+        return (goal - currentAverage) / (availablePercentage / 100)
+    }
 
 
     override fun getAnalysis(courseId: Int): String {
