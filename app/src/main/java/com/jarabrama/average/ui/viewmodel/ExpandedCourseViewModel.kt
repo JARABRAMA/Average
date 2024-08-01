@@ -8,6 +8,7 @@ import com.jarabrama.average.exceptions.courseExceptions.CourseNotFoundException
 import com.jarabrama.average.model.Grade
 import com.jarabrama.average.service.CourseService
 import com.jarabrama.average.service.GradeService
+import com.jarabrama.average.utils.Functions
 import com.jarabrama.average.utils.Strings
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -23,7 +24,7 @@ import java.lang.Integer.parseInt
 class ExpandedCourseViewModel @AssistedInject constructor(
     private val gradeService: GradeService,
     private val courseService: CourseService,
-    @Assisted private val  courseId: Int
+    @Assisted private val courseId: Int
 ) : ViewModel() {
     private val _course = MutableStateFlow(courseService.get(courseId))
     val course = _course.asStateFlow()
@@ -39,6 +40,13 @@ class ExpandedCourseViewModel @AssistedInject constructor(
 
     private val _editCreditValue = MutableStateFlow(_course.value.credits.toString())
     val editCreditValue = _editCreditValue.asStateFlow()
+
+    private val _average = MutableStateFlow("")
+    val average = _average.asStateFlow()
+
+    fun getBottomSheetContent(): String {
+       return gradeService.getAnalysis(courseId)
+    }
 
     private val _showSnackbar = MutableStateFlow(false)
 
@@ -57,6 +65,8 @@ class ExpandedCourseViewModel @AssistedInject constructor(
     private fun updateGrades() {
         viewModelScope.launch(Dispatchers.IO) {
             _grades.value = gradeService.findAllByCourseId(courseId)
+            _average.value =
+                Functions.formatDecimal(gradeService.getAverage(courseId))
         }
     }
 
@@ -80,9 +90,12 @@ class ExpandedCourseViewModel @AssistedInject constructor(
         if (editNameValue.value == "") {
             _showSnackbar.value = true
             _errorMessage.value = Strings.ERROR_NAME
-        } else  {
+        } else {
             try {
-                val updatedCourse = course.value.copy(name = editNameValue.value, credits = parseInt(editCreditValue.value))
+                val updatedCourse = course.value.copy(
+                    name = editNameValue.value,
+                    credits = parseInt(editCreditValue.value)
+                )
                 viewModelScope.launch(Dispatchers.IO) {
                     courseService.update(updatedCourse)
                 }
@@ -98,7 +111,8 @@ class ExpandedCourseViewModel @AssistedInject constructor(
             } catch (e: CourseNotFoundException) {
                 Log.e("CourseNotFoundException", e.message, e)
                 _errorMessage.value = Strings.ENTITY_NOT_FOUND
-                _showSnackbar.value = true            }
+                _showSnackbar.value = true
+            }
         }
     }
 

@@ -117,7 +117,6 @@ fun AppNavHost(
         }
         composable<Screen.GradeListScreen> {
             GradeListScreen(
-                navController = navController,
                 viewModel = hiltViewModel(),
                 paddingValues = paddingValues
             )

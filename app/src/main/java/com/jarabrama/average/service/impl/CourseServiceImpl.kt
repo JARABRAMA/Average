@@ -1,14 +1,20 @@
 package com.jarabrama.average.service.impl
 
 import android.util.Log
+import androidx.compose.runtime.currentRecomposeScope
 import com.jarabrama.average.exceptions.courseExceptions.CourseException
 import com.jarabrama.average.exceptions.courseExceptions.CourseNotFoundException
 import com.jarabrama.average.model.Course
 import com.jarabrama.average.repository.CourseRepository
 import com.jarabrama.average.service.CourseService
+import com.jarabrama.average.service.GradeService
+import com.jarabrama.average.utils.Functions
 
 
-class CourseServiceImpl(private val courseRepository: CourseRepository) : CourseService {
+class CourseServiceImpl(
+    private val courseRepository: CourseRepository,
+    private val gradeService: GradeService
+) : CourseService {
 
     override fun findAll(): List<Course> {
         val courses = courseRepository.findAll();
@@ -38,11 +44,9 @@ class CourseServiceImpl(private val courseRepository: CourseRepository) : Course
         return course
     }
 
-
     override fun delete(id: Int) {
-        val course =
-            courseRepository.get(id)
-                ?: throw CourseNotFoundException(id) // check if the note exists
+        courseRepository.get(id)
+            ?: throw CourseNotFoundException(id) // check if the note exists
         courseRepository.delete(id)
     }
 
@@ -50,9 +54,44 @@ class CourseServiceImpl(private val courseRepository: CourseRepository) : Course
         return courseRepository.get(id) ?: throw CourseNotFoundException(id)
     }
 
-    override fun getAverage(): Double {
-        val average = 0.0;
-        //todo(no yet implemented )
-        return average
+    private fun getAverage(id: Int): Double {
+        return gradeService.findAllByCourseId(id).sumOf { it.qualification * (it.percentage / 100) }
+    }
+
+
+    override fun getAverages(): Map<Int, String> {
+
+        val averages: MutableMap<Int, String> = mutableMapOf()
+        findAll().forEach {
+            val average = Functions.formatDecimal(getAverage(it.id))
+            averages[it.id] = average
+        }
+        return averages
+    }
+
+    override fun getAnalysis(maxQualification: Double, minQualification: Double): String {
+        val courses = findAll()
+        val expectedAverages = courses.map { gradeService.getExpectedAverage(it.id) }
+
+        val expectedCreditAverage =
+            expectedAverages.sum() / expectedAverages.size
+
+        val formatDecimalCreditAverage = Functions.formatDecimal(expectedCreditAverage)
+        return if (expectedCreditAverage > maxQualification) {
+            "You will not reach your goal the average of needed qualification overcomes the maximum " +
+                    "qualification limit: $formatDecimalCreditAverage"
+        } else if (expectedCreditAverage < minQualification) {
+            "At this moment you are above your goal average, keep it up!"
+        } else {
+            "You need to keep a qualification average of $formatDecimalCreditAverage to reach " +
+                    "your average goal"
+        }
+    }
+
+    override fun getCreditAverage(): Double {
+        val courses = findAll()
+        val currentAverages = courses.associateBy({ it.id }, { getAverage(it.id) })
+        val totalCredits = courses.sumOf { it.credits }
+        return (courses.sumOf { it.credits * (currentAverages[it.id] ?: 0.0) }) / totalCredits
     }
 }

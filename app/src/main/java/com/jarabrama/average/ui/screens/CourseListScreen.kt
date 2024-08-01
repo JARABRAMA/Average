@@ -10,29 +10,31 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
@@ -45,6 +47,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.window.PopupProperties
@@ -60,6 +63,7 @@ fun newCourse(navController: NavController) {
     navController.navigate(Screen.NewCourseScreen)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseListScreen(
     viewModel: CourseListViewModel,
@@ -67,31 +71,56 @@ fun CourseListScreen(
     paddingValues: PaddingValues,
 ) {
     val courses by viewModel.courses.collectAsState()
+    val currentAverages by viewModel.currentAverages.collectAsState()
+    val bottomSheetState = rememberModalBottomSheetState()
+    val showButtonSheet = remember { mutableStateOf(false) }
+    val onButtonSheet = { showButtonSheet.value = !showButtonSheet.value }
+    val currentCreditAverage by viewModel.currentCreditAverage.collectAsState()
+    val analysis by viewModel.analysis.collectAsState()
 
     CourseListScreen(
-        courseList = courses,
+        courses,
         navController,
         paddingValues,
         viewModel::onDeleteCourse,
-        viewModel::onEditCourse,
+        currentAverages,
+        bottomSheetState,
+        showButtonSheet,
+        onButtonSheet,
+        analysis,
+        currentCreditAverage
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CourseListScreen(
     courseList: List<Course>,
     navController: NavController,
-    paddingValues: PaddingValues,
+    parentPadding: PaddingValues,
     onDeleteCourse: (Int) -> Unit,
-    onEditCourse: (Int) -> Unit,
+    currentAverages: Map<Int, String>,
+    buttonSheetState: SheetState,
+    showButtonSheet: MutableState<Boolean>,
+    onButtonSheet: () -> Unit,
+    analysis: String,
+    currentCreditAverage: String
 ) {
+    val scaffoldPadding = PaddingValues(bottom = parentPadding.calculateBottomPadding())
     Scaffold(
-        topBar = { CoursesTopBar(title = stringResource(id = R.string.courses), navController) },
+        modifier = Modifier.padding(scaffoldPadding),
+        topBar = {
+            CoursesTopBar(
+                title = stringResource(id = R.string.courses),
+                navController = navController,
+                onButtonSheet = onButtonSheet
+            )
+        },
         floatingActionButton = {
             AddFloatingButton(
                 stringResource(R.string.add_course),
-                navController,
-                paddingValues
+                navController
+
             )
         }
     ) {
@@ -99,17 +128,45 @@ private fun CourseListScreen(
             courseList,
             it,
             navController,
-            onDeleteCourse,
-            onEditCourse
+            currentAverages,
+            onDeleteCourse
         )
+        if (showButtonSheet.value) {
+            ModalBottomSheet(onDismissRequest = onButtonSheet, sheetState = buttonSheetState) {
+                CreditAverageBottomSheet(analysis, currentCreditAverage)
+            }
+        }
     }
 }
 
 @Composable
-fun AddFloatingButton(label: String, navController: NavController, paddingValues: PaddingValues) {
+fun CreditAverageBottomSheet(analysis: String, currentCreditAverage: String) {
+    Column(Modifier.fillMaxWidth()) {
+        Text(
+            text = "Current Credit Average: $currentCreditAverage",
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Padding.bigPadding),
+            textAlign = TextAlign.Center,
+            fontSize = FontSizes.normal,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = analysis,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Padding.bigPadding),
+            textAlign = TextAlign.Center,
+            fontSize = FontSizes.normal
+        )
+
+    }
+}
+
+@Composable
+fun AddFloatingButton(label: String, navController: NavController) {
     FloatingActionButton(
         onClick = { newCourse(navController) },
-        modifier = Modifier.padding(paddingValues)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -125,14 +182,14 @@ fun AddFloatingButton(label: String, navController: NavController, paddingValues
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CoursesTopBar(title: String, navController: NavController) {
+fun CoursesTopBar(title: String, navController: NavController, onButtonSheet: () -> Unit) {
     TopAppBar(
         title = { Text(text = title) },
         actions = {
             IconButton(onClick = { newCourse(navController) }) {
                 Icon(imageVector = Icons.Default.Add, "Add course")
             }
-            IconButton(onClick = { /* Todo: show the average and the analysis of the semester */ }) {
+            IconButton(onClick = { onButtonSheet() }) {
                 Icon(imageVector = Icons.Default.MoreVert, contentDescription = "details")
             }
         },
@@ -146,22 +203,24 @@ fun ListCourses(
     courses: List<Course>,
     paddingValues: PaddingValues,
     navController: NavController,
-    onDeleteCourse: (Int) -> Unit,
-    onEditCourse: (Int) -> Unit
+    currentAverages: Map<Int, String>,
+    onDeleteCourse: (Int) -> Unit
 ) {
-    Column(
+    LazyColumn(
         Modifier
             .padding(paddingValues)
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
     ) {
-        courses.forEach {
+        items(courses.size) {
+            val course = courses[it]
+
             ItemCourse(
-                it,
-                navController,
-                onDeleteCourse,
-                onEditCourse
+                course = course,
+                navController = navController,
+                onDeleteCourse = onDeleteCourse,
+                currentAverage = currentAverages[course.id] ?: "0"
             )
+
         }
     }
 }
@@ -171,9 +230,9 @@ fun ItemCourse(
     course: Course,
     navController: NavController,
     onDeleteCourse: (Int) -> Unit,
-    onEditCourse: (Int) -> Unit,
+    currentAverage: String
 
-    ) {
+) {
 
     var pressOffset = remember { mutableStateOf(DpOffset.Zero) }
     val isMenu = remember { mutableStateOf(false) }
@@ -227,7 +286,7 @@ fun ItemCourse(
                         }
                         Row {
                             Text(text = stringResource(id = R.string.average))
-                            // Todo: set the average as a text in this place
+                            Text(text = ": $currentAverage")
                         }
                     }
                 }
@@ -244,7 +303,7 @@ fun ItemCourse(
         )
     ) {
         Log.i("Offset", pressOffset.value.toString())
-        PopUpMenu(onDeleteCourse, course.id, onEditCourse, isMenu)
+        PopUpMenu(onDeleteCourse, course.id, isMenu)
     }
 }
 
@@ -253,14 +312,13 @@ fun ItemCourse(
 @Composable
 private fun PopupMenu() {
     val preview = remember { mutableStateOf(true) }
-    PopUpMenu(onDeleteCourse = {}, courseId = 0, onEditCourse = {}, preview)
+    PopUpMenu(onDeleteCourse = {}, courseId = 0, preview)
 }
 
 @Composable
 private fun PopUpMenu(
     onDeleteCourse: (Int) -> Unit,
     courseId: Int,
-    onEditCourse: (Int) -> Unit,
     isMenuVisible: MutableState<Boolean>
 ) {
     Surface(

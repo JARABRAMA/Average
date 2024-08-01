@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,14 +20,17 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
@@ -39,7 +43,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import com.jarabrama.average.R
@@ -51,6 +57,7 @@ import com.jarabrama.average.ui.viewmodel.ExpandedCourseViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpandedCourseScreen(
     viewModel: ExpandedCourseViewModel,
@@ -64,7 +71,13 @@ fun ExpandedCourseScreen(
     val nameValue by viewModel.editNameValue.collectAsState()
     val creditValue by viewModel.editCreditValue.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val bottomSheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
+    val showBottomSheet = remember { mutableStateOf(false) }
+    val onShowBottomSheet = {
+        showBottomSheet.value = !showBottomSheet.value
+    }
+    val currentAverage by viewModel.average.collectAsState()
 
     ExpandedCourseScreen(
         grades,
@@ -82,10 +95,16 @@ fun ExpandedCourseScreen(
         scope,
         viewModel::getErrorMessage,
         viewModel::getErrorState,
-        viewModel::onDismissSnackbar
+        viewModel::onDismissSnackbar,
+        bottomSheetState,
+        showBottomSheet,
+        onShowBottomSheet,
+        viewModel::getBottomSheetContent,
+        currentAverage
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExpandedCourseScreen(
     grades: List<Grade>,
@@ -103,18 +122,25 @@ fun ExpandedCourseScreen(
     scope: CoroutineScope,
     getErrorMessage: () -> String,
     getErrorState: () -> Boolean,
-    onDismissSnackbar: () -> Unit
+    onDismissSnackbar: () -> Unit,
+    bottomSheetState: SheetState,
+    showBottomSheet: MutableState<Boolean>,
+    onBottomSheet: () -> Unit,
+    getBottomSheetContent: () -> String,
+    currentAverage: String
 ) {
+    val scaffoldPadding = PaddingValues(bottom = parentPadding.calculateBottomPadding())
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(scaffoldPadding),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
-            TopBarExpandedCourse(courseName, navController, showForm)
+            TopBarExpandedCourse(courseName, navController, showForm, onBottomSheet)
         },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { onNewGrade(navController, courseId) },
-                modifier = Modifier.padding(parentPadding)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -142,6 +168,14 @@ fun ExpandedCourseScreen(
             getErrorState,
             onDismissSnackbar
         )
+        if (showBottomSheet.value) {
+            ModalBottomSheet(
+                onDismissRequest = { onBottomSheet() },
+                sheetState = bottomSheetState
+            ) {
+                BottomSheetContent(message = getBottomSheetContent(), currentAverage)
+            }
+        }
     }
 }
 
@@ -150,11 +184,33 @@ fun onNewGrade(navController: NavController, courseId: Int) {
 }
 
 @Composable
+fun BottomSheetContent(message: String, currentAverage: String) {
+    Text(
+        text = "Current Average: $currentAverage",
+        modifier = Modifier
+            .padding(Padding.bigPadding)
+            .fillMaxWidth(),
+        textAlign = TextAlign.Center,
+        fontSize = FontSizes.normal,
+        fontWeight = FontWeight.Bold
+    )
+    Text(
+        text = message,
+        modifier = Modifier
+            .padding(Padding.bigPadding)
+            .fillMaxWidth(),
+        textAlign = TextAlign.Center,
+        fontSize = FontSizes.normal
+    )
+}
+
+@Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun TopBarExpandedCourse(
     courseName: String,
     navController: NavController,
-    showForm: MutableState<Boolean>
+    showForm: MutableState<Boolean>,
+    onBottomSheet: () -> Unit
 ) {
     TopAppBar(
         title = { Text(text = courseName) },
@@ -171,7 +227,7 @@ private fun TopBarExpandedCourse(
             IconButton(onClick = { showForm.value = !showForm.value }) {
                 Icon(Icons.Default.Edit, "Edit")
             }
-            IconButton(onClick = { /*TODO*/ }) {
+            IconButton(onClick = { onBottomSheet() }) {
                 Icon(imageVector = Icons.Default.MoreVert, contentDescription = "analysis")
             }
         }
