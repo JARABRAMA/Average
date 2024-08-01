@@ -1,6 +1,5 @@
 package com.jarabrama.average.ui.screens
 
-import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -44,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.window.Dialog
@@ -77,6 +77,7 @@ fun ExpandedCourseScreen(
     val onShowBottomSheet = {
         showBottomSheet.value = !showBottomSheet.value
     }
+    val currentAverage by viewModel.average.collectAsState()
 
     ExpandedCourseScreen(
         grades,
@@ -98,7 +99,8 @@ fun ExpandedCourseScreen(
         bottomSheetState,
         showBottomSheet,
         onShowBottomSheet,
-        viewModel::getBottomSheetContent
+        viewModel::getBottomSheetContent,
+        currentAverage
     )
 }
 
@@ -124,11 +126,14 @@ fun ExpandedCourseScreen(
     bottomSheetState: SheetState,
     showBottomSheet: MutableState<Boolean>,
     onBottomSheet: () -> Unit,
-    getBottomSheetContent: () -> String
+    getBottomSheetContent: () -> String,
+    currentAverage: String
 ) {
     val scaffoldPadding = PaddingValues(bottom = parentPadding.calculateBottomPadding())
     Scaffold(
-        modifier = Modifier.fillMaxSize().padding(scaffoldPadding),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(scaffoldPadding),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopBarExpandedCourse(courseName, navController, showForm, onBottomSheet)
@@ -168,7 +173,7 @@ fun ExpandedCourseScreen(
                 onDismissRequest = { onBottomSheet() },
                 sheetState = bottomSheetState
             ) {
-                BottomSheetContent(message = getBottomSheetContent())
+                BottomSheetContent(message = getBottomSheetContent(), currentAverage)
             }
         }
     }
@@ -179,8 +184,16 @@ fun onNewGrade(navController: NavController, courseId: Int) {
 }
 
 @Composable
-fun BottomSheetContent(message: String) {
-
+fun BottomSheetContent(message: String, currentAverage: String) {
+    Text(
+        text = "Current Average: $currentAverage",
+        modifier = Modifier
+            .padding(Padding.bigPadding)
+            .fillMaxWidth(),
+        textAlign = TextAlign.Center,
+        fontSize = FontSizes.normal,
+        fontWeight = FontWeight.Bold
+    )
     Text(
         text = message,
         modifier = Modifier
@@ -189,8 +202,6 @@ fun BottomSheetContent(message: String) {
         textAlign = TextAlign.Center,
         fontSize = FontSizes.normal
     )
-
-
 }
 
 @Composable

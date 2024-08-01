@@ -13,4 +13,5 @@ interface GradeService {
     fun getAnalysis(courseId: Int ): String
     fun getExpectedAverage(courseId: Int): Double
     fun getAvailablePercentage(courseId: Int): Double
+    fun getSimpleAverage(): Double
 }

@@ -8,6 +8,7 @@ import com.jarabrama.average.exceptions.courseExceptions.CourseNotFoundException
 import com.jarabrama.average.model.Grade
 import com.jarabrama.average.service.CourseService
 import com.jarabrama.average.service.GradeService
+import com.jarabrama.average.utils.Functions
 import com.jarabrama.average.utils.Strings
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -40,6 +41,9 @@ class ExpandedCourseViewModel @AssistedInject constructor(
     private val _editCreditValue = MutableStateFlow(_course.value.credits.toString())
     val editCreditValue = _editCreditValue.asStateFlow()
 
+    private val _average = MutableStateFlow("")
+    val average = _average.asStateFlow()
+
     fun getBottomSheetContent(): String {
        return gradeService.getAnalysis(courseId)
     }
@@ -61,6 +65,8 @@ class ExpandedCourseViewModel @AssistedInject constructor(
     private fun updateGrades() {
         viewModelScope.launch(Dispatchers.IO) {
             _grades.value = gradeService.findAllByCourseId(courseId)
+            _average.value =
+                Functions.formatDecimal(gradeService.getAverage(courseId))
         }
     }
 

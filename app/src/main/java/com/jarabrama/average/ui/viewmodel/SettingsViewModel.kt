@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.jarabrama.average.exceptions.settingExceptions.SettingException
 import com.jarabrama.average.model.Settings
 import com.jarabrama.average.service.SettingsService
+import com.jarabrama.average.utils.Functions
 import com.jarabrama.average.utils.Strings
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -54,9 +55,9 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             val settings = settingsService.getSettings()
             withContext(Dispatchers.Main) {
-                _maxQualification.value = settings.maxQualification.toString()
-                _minQualification.value = settings.minQualification.toString()
-                _goal.value = settings.goal.toString()
+                _maxQualification.value = Functions.formatDecimal(settings.maxQualification)
+                _minQualification.value = Functions.formatDecimal(settings.minQualification)
+                _goal.value = Functions.formatDecimal(settings.goal)
             }
         }
     }

@@ -117,4 +117,9 @@ class GradeServiceImpl(
             }
         }
     }
+
+    override fun getSimpleAverage(): Double {
+        val grades = findAll()
+        return grades.sumOf { it.qualification } / grades.size
+    }
 }
