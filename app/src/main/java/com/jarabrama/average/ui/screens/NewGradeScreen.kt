@@ -51,8 +51,7 @@ import java.text.Normalizer.Form
 @Composable
 fun NewGradeScreen(
     viewModel: NewGradeViewModel,
-    navController: NavController,
-    parentPadding: PaddingValues
+    navController: NavController
 ) {
     val name by viewModel.name.collectAsState()
     val qualification by viewModel.qualification.collectAsState()
@@ -68,7 +67,6 @@ fun NewGradeScreen(
         viewModel::onQualificationChange,
         viewModel::onPercentageChange,
         viewModel::onSave,
-        parentPadding,
         navController,
         scope,
         snackbarHostState,
@@ -87,7 +85,6 @@ fun NewGradeScreen(
     onQualificationChange: (String) -> Unit,
     onPercentageChange: (String) -> Unit,
     onSave: () -> Unit,
-    parentPadding: PaddingValues,
     navController: NavController,
     scope: CoroutineScope,
     snackbarHostState: SnackbarHostState,
@@ -95,9 +92,7 @@ fun NewGradeScreen(
     getErrorMessage: () -> String,
     onDismissSnackbar: () -> Unit
 ) {
-    val padding = PaddingValues(bottom = parentPadding.calculateBottomPadding())
     Scaffold(
-        modifier = Modifier.padding(padding),
         topBar = { NewGradeTopBar(navController) },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) {
