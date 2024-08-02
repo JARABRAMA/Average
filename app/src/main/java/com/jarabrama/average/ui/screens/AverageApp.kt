@@ -1,5 +1,7 @@
 package com.jarabrama.average.ui.screens
 
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -79,6 +81,7 @@ private fun BottomBar(navController: NavController) {
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun AppNavHost(
     navController: NavHostController,
@@ -86,41 +89,45 @@ fun AppNavHost(
     expandedCourseAssistedFactory: ExpandedCourseAssistedFactory,
     newGradeAssistedFactory: NewGradeAssistedFactory
 ) {
-    NavHost(navController = navController, startDestination = Screen.CourseScreen, modifier = Modifier.padding(innerPadding)) {
-        navigation<Screen.CourseScreen>(startDestination = Screen.CourseListScreen) {
-            composable<Screen.CourseListScreen> {
-                CourseListScreen(
-                    viewModel = hiltViewModel(),
+    SharedTransitionLayout {
+        NavHost(navController = navController, startDestination = Screen.CourseScreen, modifier = Modifier.padding(innerPadding)) {
+            navigation<Screen.CourseScreen>(startDestination = Screen.CourseListScreen) {
+                composable<Screen.CourseListScreen> {
+                    CourseListScreen(
+                        viewModel = hiltViewModel(),
+                        navController = navController,
+                        animatedVisibilityScope = this@composable
+                    )
+                }
+                composable<Screen.NewCourseScreen> {
+                    NewCourseScreen(viewModel = hiltViewModel(), navController = navController)
+                }
+                composable<Screen.ExpandedCourseScreen> {
+                    val args = it.toRoute<Screen.ExpandedCourseScreen>()
+                    val viewModel: ExpandedCourseViewModel =
+                        expandedCourseAssistedFactory.create(args.courseId)
+                    ExpandedCourseScreen(
+                        viewModel = viewModel,
+                        navController = navController,
+                        animatedVisibilityScope = this@composable
+                    )
+                }
+                composable<Screen.NewGradeScreen> {
+                    val args = it.toRoute<Screen.NewGradeScreen>()
+                    val viewModel: NewGradeViewModel =
+                        newGradeAssistedFactory.create(args.courseId)
+                    NewGradeScreen(viewModel, navController)
+                }
+            }
+            composable<Screen.GradeListScreen> {
+                GradeListScreen(hiltViewModel())
+            }
+            composable<Screen.SettingsScreen> {
+                SettingsScreen(
                     navController = navController,
+                    viewModel = hiltViewModel()
                 )
             }
-            composable<Screen.NewCourseScreen> {
-                NewCourseScreen(viewModel = hiltViewModel(), navController = navController)
-            }
-            composable<Screen.ExpandedCourseScreen> {
-                val args = it.toRoute<Screen.ExpandedCourseScreen>()
-                val viewModel: ExpandedCourseViewModel =
-                    expandedCourseAssistedFactory.create(args.courseId)
-                ExpandedCourseScreen(
-                    viewModel = viewModel,
-                    navController = navController
-                )
-            }
-            composable<Screen.NewGradeScreen> {
-                val args = it.toRoute<Screen.NewGradeScreen>()
-                val viewModel: NewGradeViewModel =
-                    newGradeAssistedFactory.create(args.courseId)
-                NewGradeScreen(viewModel, navController)
-            }
-        }
-        composable<Screen.GradeListScreen> {
-            GradeListScreen(hiltViewModel())
-        }
-        composable<Screen.SettingsScreen> {
-            SettingsScreen(
-                navController = navController,
-                viewModel = hiltViewModel()
-            )
         }
     }
 }

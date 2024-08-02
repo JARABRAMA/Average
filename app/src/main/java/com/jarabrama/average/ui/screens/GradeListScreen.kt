@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -51,7 +52,7 @@ import com.jarabrama.average.ui.viewmodel.GradeListViewModel
 fun GradeListScreen(
     viewModel: GradeListViewModel
 ) {
-    val grades by viewModel.grades.collectAsState()
+    val grades by viewModel.grades.collectAsState(initial = null)
     val modalBottomSheetState = rememberModalBottomSheetState()
     val showBottomSheet = remember { mutableStateOf(false) }
     val onBottomSheet = { showBottomSheet.value = !showBottomSheet.value }
@@ -69,13 +70,14 @@ fun GradeListScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GradeListScreen(
-    grades: List<Grade>,
+    grades: List<Grade>?,
     modalBottomSheetState: SheetState,
     showBottomSheet: MutableState<Boolean>,
     onBottomSheet: () -> Unit,
     average: String
 ) {
-     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior =
+        TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
@@ -118,7 +120,7 @@ private fun GradListAnalysis(average: String) {
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun ListGradesTopBar(onBottomSheet: () -> Unit, scrollBehavior: TopAppBarScrollBehavior) {
-     LargeTopAppBar(
+    LargeTopAppBar(
         title = { Text(text = stringResource(id = R.string.grades)) },
         actions = {
             IconButton(onClick = { onBottomSheet() }) {
@@ -128,21 +130,25 @@ private fun ListGradesTopBar(onBottomSheet: () -> Unit, scrollBehavior: TopAppBa
                 )
             }
         },
-         scrollBehavior = scrollBehavior
+        scrollBehavior = scrollBehavior
     )
 }
 
 @Composable
-fun ListGrades(grades: List<Grade>, paddingValues: PaddingValues) {
-    LazyColumn(
-        Modifier
-            .padding(paddingValues)
-            .fillMaxWidth()
-    ) {
-        items(grades.size) {
-            val grade = grades[it]
-            GradeItem(grade.name, grade.qualification, grade.percentage)
+fun ListGrades(grades: List<Grade>?, paddingValues: PaddingValues) {
+    if (grades != null) {
+        LazyColumn(
+            Modifier
+                .padding(paddingValues)
+                .fillMaxWidth()
+        ) {
+            items(grades.size) {
+                val grade = grades[it]
+                GradeItem(grade.name, grade.qualification, grade.percentage)
+            }
         }
+    } else {
+        CircularProgressIndicator()
     }
 }
 
@@ -151,40 +157,33 @@ fun GradeItem(name: String, qualification: Double, percentage: Double) {
     Card(
         Modifier
             .fillMaxWidth()
-            .padding(Padding.normalPadding)
+            .padding(Padding.cardList)
     ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                modifier = Modifier.padding(Padding.normalPadding),
-                painter = painterResource(id = R.drawable.article),
-                contentDescription = "course"
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(Padding.normalPadding)
+        ) {
+            Text(
+                text = name,
+                modifier = Modifier.padding(Padding.smallPadding),
+                fontSize = FontSizes.normal,
+                fontWeight = FontWeight.Bold
             )
-            Column(
-                Modifier
-                    .padding(Padding.normalPadding)
-                    .fillMaxWidth()
-            ) {
-                Text(
-                    text = name,
-                    modifier = Modifier.padding(Padding.smallPadding),
-                    fontSize = FontSizes.normal,
-                    fontWeight = FontWeight.Bold
-                )
-                BoxWithConstraints {
-                    val localConfig = LocalConfiguration.current
-                    val screenWidth = localConfig.screenWidthDp
-                    Log.i("Screen", "width: $screenWidth")
-                    if (maxWidth > 300.dp) {
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            LabelsGrade(qualification, percentage)
-                        }
-                    } else {
-                        Column {
-                            LabelsGrade(qualification, percentage)
-                        }
+            BoxWithConstraints {
+                val localConfig = LocalConfiguration.current
+                val screenWidth = localConfig.screenWidthDp
+                Log.i("Screen", "width: $screenWidth")
+                if (maxWidth > 300.dp) {
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        LabelsGrade(qualification, percentage)
+                    }
+                } else {
+                    Column {
+                        LabelsGrade(qualification, percentage)
                     }
                 }
             }

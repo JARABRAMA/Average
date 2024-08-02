@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jarabrama.average.event.Event
 import com.jarabrama.average.exceptions.courseExceptions.CourseNotFoundException
+import com.jarabrama.average.model.Course
 import com.jarabrama.average.model.Grade
 import com.jarabrama.average.service.CourseService
 import com.jarabrama.average.service.GradeService
@@ -26,19 +27,19 @@ class ExpandedCourseViewModel @AssistedInject constructor(
     private val courseService: CourseService,
     @Assisted private val courseId: Int
 ) : ViewModel() {
-    private val _course = MutableStateFlow(courseService.get(courseId))
+    private val _course = MutableStateFlow<Course?>(null)
     val course = _course.asStateFlow()
 
-    private val _courseName = MutableStateFlow(course.value.name)
+    private val _courseName = MutableStateFlow("")
     val courseName = _courseName.asStateFlow()
 
     private val _grades = MutableStateFlow(listOf<Grade>())
     val grades = _grades.asStateFlow()
 
-    private val _editNameValue = MutableStateFlow(_course.value.name)
+    private val _editNameValue = MutableStateFlow("")
     val editNameValue = _editNameValue.asStateFlow()
 
-    private val _editCreditValue = MutableStateFlow(_course.value.credits.toString())
+    private val _editCreditValue = MutableStateFlow("")
     val editCreditValue = _editCreditValue.asStateFlow()
 
     private val _average = MutableStateFlow("")
@@ -65,6 +66,10 @@ class ExpandedCourseViewModel @AssistedInject constructor(
     private fun updateGrades() {
         viewModelScope.launch(Dispatchers.IO) {
             _grades.value = gradeService.findAllByCourseId(courseId)
+            _course.value = courseService.get(courseId)
+            _editNameValue.value = _course.value?.name  ?: ""
+            _courseName.value = _course.value?.name ?: ""
+            _editCreditValue.value = _course.value?.credits.toString()
             _average.value =
                 Functions.formatDecimal(gradeService.getAverage(courseId))
         }
@@ -92,15 +97,17 @@ class ExpandedCourseViewModel @AssistedInject constructor(
             _errorMessage.value = Strings.ERROR_NAME
         } else {
             try {
-                val updatedCourse = course.value.copy(
+                val updatedCourse = course.value?.copy(
                     name = editNameValue.value,
                     credits = parseInt(editCreditValue.value)
                 )
                 viewModelScope.launch(Dispatchers.IO) {
-                    courseService.update(updatedCourse)
+                    updatedCourse?.let {
+                        courseService.update(updatedCourse)
+                    }
                 }
                 _course.value = updatedCourse
-                _courseName.value = updatedCourse.name
+                _courseName.value = updatedCourse?.name ?: ""
                 EventBus.getDefault().post(
                     Event.CourseAddedEvent(_editNameValue.value, parseInt(_editCreditValue.value))
                 )
