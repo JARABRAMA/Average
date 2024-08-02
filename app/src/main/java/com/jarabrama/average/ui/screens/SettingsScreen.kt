@@ -11,6 +11,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Card
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -45,8 +46,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsScreen(
     navController: NavController,
-    viewModel: SettingsViewModel,
-    paddingValues: PaddingValues
+    viewModel: SettingsViewModel
 ) {
     val minQualification by viewModel.minQualification.collectAsState()
     val maxQualification by viewModel.maxQualification.collectAsState()
@@ -65,7 +65,6 @@ fun SettingsScreen(
         onGoalChange = { viewModel.onGoalChange(it) },
         navController = navController,
         onSave = { viewModel.onSave() },
-        paddingValues = paddingValues,
         getErrorState = { viewModel.geErrorState() },
         onDismiss = { viewModel.onDismiss() },
         getErrorMessage = { viewModel.getErrorMessage() }
@@ -85,28 +84,18 @@ fun SettingsScreen(
     onGoalChange: (String) -> Unit,
     navController: NavController,
     onSave: () -> Unit,
-    paddingValues: PaddingValues,
     getErrorState: () -> Boolean,
     onDismiss: () -> Unit,
     getErrorMessage: () -> String
 ) {
     Scaffold(
         topBar = {
-            SettingsTopBar(
-                onSave,
-                getErrorMessage,
-                getErrorState,
-                scope,
-                snackbarHostState,
-                onDismiss,
-                navController
-            )
+            SettingsTopBar()
         },
         floatingActionButton = {
             SaveFloatingButton(
                 onSave = onSave,
                 navController = navController,
-                paddingValues = paddingValues,
                 getErrorState = getErrorState,
                 getErrorMessage = getErrorMessage,
                 onDismiss = onDismiss,
@@ -130,34 +119,9 @@ fun SettingsScreen(
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-private fun SettingsTopBar(
-    onSave: () -> Unit,
-    getErrorMessage: () -> String,
-    getErrorState: () -> Boolean,
-    scope: CoroutineScope,
-    snackbarHostState: SnackbarHostState,
-    onDismiss: () -> Unit,
-    navController: NavController
-) {
-    TopAppBar(
+private fun SettingsTopBar() {
+    CenterAlignedTopAppBar(
         title = { Text(text = stringResource(id = R.string.setting)) },
-        actions = {
-            IconButton(
-                onClick = {
-                    onSaveSettings(
-                        onSave,
-                        getErrorState,
-                        getErrorMessage,
-                        scope,
-                        snackbarHostState,
-                        onDismiss,
-                        navController
-                    )
-                }
-            ) {
-                Icon(painterResource(id = R.drawable.check), "Set")
-            }
-        }
     )
 }
 
@@ -165,7 +129,6 @@ private fun SettingsTopBar(
 private fun SaveFloatingButton(
     onSave: () -> Unit,
     navController: NavController,
-    paddingValues: PaddingValues,
     getErrorState: () -> Boolean,
     getErrorMessage: () -> String,
     onDismiss: () -> Unit,
@@ -173,7 +136,6 @@ private fun SaveFloatingButton(
     scope: CoroutineScope
 ) {
     ExtendedFloatingActionButton(
-        modifier = Modifier.padding(paddingValues),
         onClick = {
             onSaveSettings(
                 onSave,

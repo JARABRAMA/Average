@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.BottomAppBarScrollBehavior
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -25,6 +26,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -34,7 +36,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
@@ -43,11 +47,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.window.PopupProperties
@@ -68,7 +74,6 @@ fun newCourse(navController: NavController) {
 fun CourseListScreen(
     viewModel: CourseListViewModel,
     navController: NavController,
-    paddingValues: PaddingValues,
 ) {
     val courses by viewModel.courses.collectAsState()
     val currentAverages by viewModel.currentAverages.collectAsState()
@@ -81,7 +86,6 @@ fun CourseListScreen(
     CourseListScreen(
         courses,
         navController,
-        paddingValues,
         viewModel::onDeleteCourse,
         currentAverages,
         bottomSheetState,
@@ -97,7 +101,6 @@ fun CourseListScreen(
 private fun CourseListScreen(
     courseList: List<Course>,
     navController: NavController,
-    parentPadding: PaddingValues,
     onDeleteCourse: (Int) -> Unit,
     currentAverages: Map<Int, String>,
     buttonSheetState: SheetState,
@@ -106,14 +109,15 @@ private fun CourseListScreen(
     analysis: String,
     currentCreditAverage: String
 ) {
-    val scaffoldPadding = PaddingValues(bottom = parentPadding.calculateBottomPadding())
+    val scrollBehavior  = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     Scaffold(
-        modifier = Modifier.padding(scaffoldPadding),
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             CoursesTopBar(
                 title = stringResource(id = R.string.courses),
                 navController = navController,
-                onButtonSheet = onButtonSheet
+                onButtonSheet = onButtonSheet,
+                scrollBehavior = scrollBehavior
             )
         },
         floatingActionButton = {
@@ -182,9 +186,9 @@ fun AddFloatingButton(label: String, navController: NavController) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CoursesTopBar(title: String, navController: NavController, onButtonSheet: () -> Unit) {
-    TopAppBar(
-        title = { Text(text = title) },
+fun CoursesTopBar(title: String, navController: NavController, onButtonSheet: () -> Unit, scrollBehavior: TopAppBarScrollBehavior) {
+    LargeTopAppBar(
+        title = { Text(text = title, overflow = TextOverflow.Ellipsis) },
         actions = {
             IconButton(onClick = { newCourse(navController) }) {
                 Icon(imageVector = Icons.Default.Add, "Add course")
@@ -193,7 +197,8 @@ fun CoursesTopBar(title: String, navController: NavController, onButtonSheet: ()
                 Icon(imageVector = Icons.Default.MoreVert, contentDescription = "details")
             }
         },
-        colors = TopAppBarDefaults.topAppBarColors()
+        colors = TopAppBarDefaults.topAppBarColors(),
+        scrollBehavior = scrollBehavior
     )
 }
 
@@ -233,7 +238,6 @@ fun ItemCourse(
     currentAverage: String
 
 ) {
-
     var pressOffset = remember { mutableStateOf(DpOffset.Zero) }
     val isMenu = remember { mutableStateOf(false) }
     Card(
