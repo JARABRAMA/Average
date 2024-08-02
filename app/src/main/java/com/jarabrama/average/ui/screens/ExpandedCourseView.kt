@@ -1,10 +1,15 @@
 package com.jarabrama.average.ui.screens
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,6 +20,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -29,17 +35,20 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -59,15 +68,17 @@ import com.jarabrama.average.ui.theme.ui.FontSizes
 import com.jarabrama.average.ui.theme.ui.Padding
 import com.jarabrama.average.ui.viewmodel.ExpandedCourseViewModel
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
-fun ExpandedCourseScreen(
+fun SharedTransitionScope.ExpandedCourseScreen(
     viewModel: ExpandedCourseViewModel,
-    navController: NavController
+    navController: NavController,
+    animatedVisibilityScope: AnimatedVisibilityScope
 ) {
-    val grades by viewModel.grades.collectAsState()
+    val grades by viewModel.grades.collectAsState(initial = null)
     val course by viewModel.course.collectAsState()
     val courseName by viewModel.courseName.collectAsState()
     val showForm = remember { mutableStateOf(false) }
@@ -86,7 +97,7 @@ fun ExpandedCourseScreen(
         grades,
         navController,
         courseName,
-        course.id,
+        course?.id ?: -1,
         showForm,
         nameValue,
         creditValue,
@@ -102,14 +113,15 @@ fun ExpandedCourseScreen(
         showBottomSheet,
         onShowBottomSheet,
         viewModel::getBottomSheetContent,
-        currentAverage
+        currentAverage,
+        animatedVisibilityScope
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
-fun ExpandedCourseScreen(
-    grades: List<Grade>,
+fun SharedTransitionScope.ExpandedCourseScreen(
+    grades: List<Grade>?,
     navController: NavController,
     courseName: String,
     courseId: Int,
@@ -128,14 +140,25 @@ fun ExpandedCourseScreen(
     showBottomSheet: MutableState<Boolean>,
     onBottomSheet: () -> Unit,
     getBottomSheetContent: () -> String,
-    currentAverage: String
+    currentAverage: String,
+    animatedVisibilityScope: AnimatedVisibilityScope
 ) {
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        modifier = Modifier
+            .sharedElement(
+                state = rememberSharedContentState(key = "card-${courseId}"),
+                animatedVisibilityScope = animatedVisibilityScope
+            ),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
-            TopBarExpandedCourse(courseName, navController, showForm, onBottomSheet, scrollBehavior)
+            TopBarExpandedCourse(
+                courseName,
+                navController,
+                showForm,
+                onBottomSheet,
+                animatedVisibilityScope,
+                courseId
+            )
         },
         floatingActionButton = {
             FloatingActionButton(
@@ -152,27 +175,39 @@ fun ExpandedCourseScreen(
             }
         }
     ) {
-        GradeList(
-            grades,
-            it,
-            showForm,
-            nameValue,
-            creditValue,
-            onNameChange,
-            onCreditChange,
-            onUpdate,
-            snackbarHostState,
-            scope,
-            getErrorMessage,
-            getErrorState,
-            onDismissSnackbar
-        )
-        if (showBottomSheet.value) {
-            ModalBottomSheet(
-                onDismissRequest = { onBottomSheet() },
-                sheetState = bottomSheetState
-            ) {
-                BottomSheetContent(message = getBottomSheetContent(), currentAverage)
+        var showContent by remember { mutableStateOf(false) }
+        LaunchedEffect(key1 = Unit) {
+            delay(1000)
+            showContent = true
+        }
+        if (showContent) {
+            GradeList(
+                grades,
+                it,
+                showForm,
+                nameValue,
+                creditValue,
+                onNameChange,
+                onCreditChange,
+                onUpdate,
+                snackbarHostState,
+                scope,
+                getErrorMessage,
+                getErrorState,
+                onDismissSnackbar
+            )
+
+            if (showBottomSheet.value) {
+                ModalBottomSheet(
+                    onDismissRequest = { onBottomSheet() },
+                    sheetState = bottomSheetState
+                ) {
+                    BottomSheetContent(message = getBottomSheetContent(), currentAverage)
+                }
+            }
+        } else {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
         }
     }
@@ -204,17 +239,27 @@ fun BottomSheetContent(message: String, currentAverage: String) {
 }
 
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
-private fun TopBarExpandedCourse(
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
+private fun SharedTransitionScope.TopBarExpandedCourse(
     courseName: String,
     navController: NavController,
     showForm: MutableState<Boolean>,
     onBottomSheet: () -> Unit,
-    scrollBehavior: TopAppBarScrollBehavior
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    courseId: Int
 ) {
 
-    LargeTopAppBar(
-        title = { Text(text = courseName, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+    TopAppBar(
+        title = {
+            Text(
+                text = courseName,
+                maxLines = 1,
+                modifier = Modifier.sharedElement(
+                    state = rememberSharedContentState(key = "course-${courseId}"),
+                    animatedVisibilityScope = animatedVisibilityScope,
+                )
+            )
+        },
         navigationIcon = {
             IconButton(
                 onClick = { onBack(navController) }) {
@@ -231,8 +276,7 @@ private fun TopBarExpandedCourse(
             IconButton(onClick = { onBottomSheet() }) {
                 Icon(imageVector = Icons.Default.MoreVert, contentDescription = "analysis")
             }
-        },
-        scrollBehavior = scrollBehavior
+        }
     )
 }
 
@@ -306,7 +350,7 @@ fun EditCourseForm(
 
 @Composable
 private fun GradeList(
-    grades: List<Grade>,
+    grades: List<Grade>?,
     paddingValues: PaddingValues,
     showForm: MutableState<Boolean>,
     nameValue: String,
@@ -320,14 +364,18 @@ private fun GradeList(
     getErrorState: () -> Boolean,
     onDismissSnackbar: () -> Unit
 ) {
-    LazyColumn(Modifier.padding(paddingValues)) {
-        items(grades.size) {
-            GradeItem(
-                name = grades[it].name,
-                qualification = grades[it].qualification,
-                percentage = grades[it].percentage
-            )
+    if (grades != null) {
+        LazyColumn(Modifier.padding(paddingValues)) {
+            items(grades.size) {
+                GradeItem(
+                    name = grades[it].name,
+                    qualification = grades[it].qualification,
+                    percentage = grades[it].percentage
+                )
+            }
         }
+    } else {
+        CircularProgressIndicator()
     }
     when {
         showForm.value -> {
