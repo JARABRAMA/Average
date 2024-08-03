@@ -21,7 +21,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -32,11 +31,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -144,7 +141,11 @@ fun ListGrades(grades: List<Grade>?, paddingValues: PaddingValues) {
         ) {
             items(grades.size) {
                 val grade = grades[it]
-                GradeItem(grade.name, grade.qualification, grade.percentage)
+                GradeItem(
+                    grade.name,
+                    grade.qualification,
+                    grade.percentage
+                )
             }
         }
     } else {
@@ -153,7 +154,11 @@ fun ListGrades(grades: List<Grade>?, paddingValues: PaddingValues) {
 }
 
 @Composable
-fun GradeItem(name: String, qualification: Double, percentage: Double) {
+fun GradeItem(
+    name: String,
+    qualification: Double,
+    percentage: Double
+) {
     Card(
         Modifier
             .fillMaxWidth()
@@ -192,7 +197,7 @@ fun GradeItem(name: String, qualification: Double, percentage: Double) {
 }
 
 @Composable
-private fun LabelsGrade(qualification: Double, percentage: Double) {
+fun LabelsGrade(qualification: Double, percentage: Double) {
     Row(Modifier.padding(Padding.smallPadding)) {
         Text(text = stringResource(R.string.qualification))
         Text(text = ": $qualification")

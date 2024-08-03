@@ -1,10 +1,12 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.jarabrama.average.ui.screens
 
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,15 +17,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -33,29 +32,23 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.DpOffset
 import androidx.navigation.NavController
 import com.jarabrama.average.R
 import com.jarabrama.average.Screen
@@ -63,7 +56,6 @@ import com.jarabrama.average.model.Course
 import com.jarabrama.average.ui.theme.ui.FontSizes
 import com.jarabrama.average.ui.theme.ui.Padding
 import com.jarabrama.average.ui.viewmodel.CourseListViewModel
-import kotlinx.coroutines.delay
 
 fun newCourse(navController: NavController) {
     navController.navigate(Screen.NewCourseScreen)
@@ -166,7 +158,6 @@ fun CreditAverageBottomSheet(analysis: String, currentCreditAverage: String) {
             textAlign = TextAlign.Center,
             fontSize = FontSizes.normal
         )
-
     }
 }
 
@@ -193,7 +184,6 @@ fun CoursesTopBar(
     title: String,
     navController: NavController,
     onButtonSheet: () -> Unit,
-
     ) {
     LargeTopAppBar(
         title = { Text(text = title, overflow = TextOverflow.Ellipsis) },
@@ -220,8 +210,13 @@ fun SharedTransitionScope.ListCourses(
     onDeleteCourse: (Int) -> Unit,
     animatedVisibilityScope: AnimatedVisibilityScope
 ) {
-
     if (courses != null) {
+        val isMenu = remember { mutableStateOf(false) }
+        val courseName = remember { mutableStateOf<String?>(null) }
+        val id = remember { mutableStateOf<Int?>(null) }
+        val onMenu = { isMenu.value = !isMenu.value }
+        val onIdChange = { it: Int -> id.value = it }
+        val onCourseNameChange = { it: String -> courseName.value = it }
         LazyColumn(
             Modifier
                 .padding(paddingValues)
@@ -233,13 +228,30 @@ fun SharedTransitionScope.ListCourses(
                         ItemCourse(
                             course = it,
                             navController = navController,
-                            onDeleteCourse = onDeleteCourse,
                             currentAverage = average,
-                            animatedVisibilityScope = animatedVisibilityScope
+                            animatedVisibilityScope = animatedVisibilityScope,
+                            onCourseNameChange = onCourseNameChange,
+                            onMenu = onMenu,
+                            onIdChange = onIdChange
                         )
                     }
                 }
             }
+        }
+        if (isMenu.value) {
+            AlertDialog(
+                onDismissRequest = { onMenu() },
+                confirmButton = {
+                    TextButton(onClick = { onDeleteCourse(id.value ?: -1); onMenu() }) {
+                        Text(
+                            text = stringResource(id = R.string.delete),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                },
+                title = { Text(text = "Delete ${courseName.value ?: ""}") },
+                text = { Text(text = "Do you want do delete ${courseName.value ?: ""}") }
+            )
         }
     } else {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -248,18 +260,17 @@ fun SharedTransitionScope.ListCourses(
     }
 }
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun SharedTransitionScope.ItemCourse(
     course: Course,
     navController: NavController,
-    onDeleteCourse: (Int) -> Unit,
     currentAverage: String,
-    animatedVisibilityScope: AnimatedVisibilityScope
-
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    onCourseNameChange: (String) -> Unit,
+    onMenu: () -> Unit,
+    onIdChange: (Int) -> Unit
 ) {
-    val pressOffset = remember { mutableStateOf(DpOffset.Zero) }
-    val isMenu = remember { mutableStateOf(false) }
     Card(
         modifier = Modifier
             .padding(Padding.cardList)
@@ -267,19 +278,16 @@ fun SharedTransitionScope.ItemCourse(
                 state = rememberSharedContentState(key = "card-${course.id}"),
                 animatedVisibilityScope = animatedVisibilityScope
             )
-            .pointerInput(true) {
-                detectTapGestures(
-                    onTap = {
-                        onClickCourse(navController, course.id)
-                    },
-                    onLongPress = {
-                        isMenu.value = true
-                        pressOffset.value = DpOffset(it.x.toDp(), it.y.toDp())
-                        Log.i("PressOffset", pressOffset.value.toString())
-                    },
-                )
-            },
-
+            .combinedClickable(
+                onClick = {
+                    onClickCourse(navController, course.id)
+                },
+                onLongClick = {
+                    onMenu()
+                    onCourseNameChange(course.name)
+                    onIdChange(course.id)
+                }
+            )
         ) {
         Column(
             Modifier
@@ -315,57 +323,6 @@ fun SharedTransitionScope.ItemCourse(
                         Text(text = stringResource(id = R.string.average))
                         Text(text = ": $currentAverage")
                     }
-                }
-            }
-        }
-    }
-    DropdownMenu(
-        expanded = isMenu.value,
-        onDismissRequest = {
-            isMenu.value = false
-        }
-    ) {
-        PopUpMenu(onDeleteCourse, course.id, isMenu)
-    }
-}
-
-
-@Preview
-@Composable
-private fun PopupMenu() {
-    val preview = remember { mutableStateOf(true) }
-    PopUpMenu(onDeleteCourse = {}, courseId = 0, preview)
-}
-
-@Composable
-private fun PopUpMenu(
-    onDeleteCourse: (Int) -> Unit,
-    courseId: Int,
-    isMenuVisible: MutableState<Boolean>
-) {
-    Surface(
-        shape = RoundedCornerShape(20),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(Modifier.fillMaxWidth()) {
-            TextButton(
-                onClick = {
-                    onDeleteCourse(courseId)
-                    isMenuVisible.value = false
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = MaterialTheme.colorScheme.error
-                ),
-                modifier = Modifier.padding(Padding.horizontal)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(text = stringResource(id = R.string.delete))
-                    Icon(Icons.Default.Delete, "Delete")
                 }
             }
         }
