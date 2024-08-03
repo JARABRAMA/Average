@@ -51,6 +51,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -291,7 +292,8 @@ private fun BottomSheetEditGrade(
                 value = editNameValue,
                 onValueChange = onNameChange,
                 maxLines = 1,
-                modifier = Modifier.padding(Padding.cardList)
+                singleLine = true,
+                modifier = Modifier.padding(Padding.cardList).fillMaxWidth(.8f)
             )
             Text(
                 text = stringResource(id = R.string.qualification),
@@ -301,8 +303,9 @@ private fun BottomSheetEditGrade(
                 value = qualificationValue,
                 onValueChange = onQualificationChange,
                 maxLines = 1,
+                singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.padding(Padding.cardList)
+                modifier = Modifier.padding(Padding.cardList).fillMaxWidth(.8f)
             )
             Text(
                 text = stringResource(id = R.string.percentage),
@@ -312,8 +315,9 @@ private fun BottomSheetEditGrade(
                 value = percentageValue,
                 onValueChange = onPercentageChange,
                 maxLines = 1,
+                singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.padding(Padding.cardList)
+                modifier = Modifier.padding(Padding.cardList).fillMaxWidth(.8f)
             )
         }
         Spacer(Modifier.padding(Padding.cardList))
@@ -333,7 +337,7 @@ private fun BottomSheetEditGrade(
             },
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
-                .fillMaxWidth(.7f)
+                .fillMaxWidth(.8f)
         ) {
             Text(
                 text = stringResource(id = R.string.save),
