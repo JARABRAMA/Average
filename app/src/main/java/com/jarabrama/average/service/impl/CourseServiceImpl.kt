@@ -47,6 +47,9 @@ class CourseServiceImpl(
     override fun delete(id: Int) {
         courseRepository.get(id)
             ?: throw CourseNotFoundException(id) // check if the note exists
+        gradeService.findAllByCourseId(id).forEach {
+            gradeService.delete(it.id) // delete all the grades of the course
+        }
         courseRepository.delete(id)
     }
 

@@ -1,10 +1,12 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.jarabrama.average.ui.screens
 
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,15 +17,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -33,9 +36,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
-import androidx.compose.material3.Surface
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -45,17 +49,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.DpOffset
 import androidx.navigation.NavController
 import com.jarabrama.average.R
 import com.jarabrama.average.Screen
@@ -63,7 +66,8 @@ import com.jarabrama.average.model.Course
 import com.jarabrama.average.ui.theme.ui.FontSizes
 import com.jarabrama.average.ui.theme.ui.Padding
 import com.jarabrama.average.ui.viewmodel.CourseListViewModel
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 fun newCourse(navController: NavController) {
     navController.navigate(Screen.NewCourseScreen)
@@ -83,6 +87,9 @@ fun SharedTransitionScope.CourseListScreen(
     val onButtonSheet = { showButtonSheet.value = !showButtonSheet.value }
     val currentCreditAverage by viewModel.currentCreditAverage.collectAsState()
     val analysis by viewModel.analysis.collectAsState()
+    val editName by viewModel.editName.collectAsState()
+    val editCredits by viewModel.editCredits.collectAsState()
+
 
     CourseListScreen(
         courses,
@@ -94,7 +101,16 @@ fun SharedTransitionScope.CourseListScreen(
         onButtonSheet,
         analysis,
         currentCreditAverage,
-        animatedVisibilityScope
+        animatedVisibilityScope,
+        editName,
+        editCredits,
+        viewModel.onEditNameChange,
+        viewModel.onEditCreditChange,
+        viewModel.setValues,
+        viewModel.onEditCourse,
+        viewModel.getSnackbarStatus,
+        viewModel.getSnackbarMessage,
+        viewModel.onDismissSnackbar
     )
 }
 
@@ -110,7 +126,18 @@ private fun SharedTransitionScope.CourseListScreen(
     onButtonSheet: () -> Unit,
     analysis: String,
     currentCreditAverage: String,
-    animatedVisibilityScope: AnimatedVisibilityScope
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    editName: String,
+    editCredits: String,
+    onEditNameChange: (String) -> Unit,
+    onEditCreditChange: (String) -> Unit,
+    setValues: (String, String) -> Unit,
+    onEditCourse: (Int) -> Any,
+    getSnackbarStatus: () -> Boolean,
+    getSnackbarMessage: () -> String,
+    onDismissSnackbar: () -> Unit,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    scope: CoroutineScope = rememberCoroutineScope()
 ) {
 
     Scaffold(
@@ -128,32 +155,187 @@ private fun SharedTransitionScope.CourseListScreen(
                 navController
 
             )
-        }
-    ) {
-        ListCourses(
-            courseList,
-            it,
-            navController,
-            currentAverages,
-            onDeleteCourse,
-            animatedVisibilityScope
-        )
-        if (showButtonSheet.value) {
-            ModalBottomSheet(onDismissRequest = onButtonSheet, sheetState = buttonSheetState) {
-                CreditAverageBottomSheet(analysis, currentCreditAverage)
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+    ) { paddingValues ->
+        if (courseList != null) {
+            var pickedCourse by remember { mutableStateOf<Course?>(null) }
+            val pickCourse = { course: Course -> pickedCourse = course }
+
+            var showOptions by remember { mutableStateOf(false) }
+            val onShowOptions = { showOptions = !showOptions }
+
+            var showEditForm by remember { mutableStateOf(false) }
+            val onShowEditForm = { showEditForm = !showEditForm }
+            ListCourses(
+                courseList,
+                paddingValues,
+                navController,
+                currentAverages,
+                animatedVisibilityScope,
+                pickCourse,
+                onShowOptions
+            )
+            if (showButtonSheet.value) {
+                AnalysisBottomSheet(onButtonSheet, buttonSheetState, analysis, currentCreditAverage)
             }
+            if (showOptions) {
+                pickedCourse?.let { course ->
+                    OptionsModalSheet(
+                        onShowOptions,
+                        pickedCourse,
+                        onShowEditForm,
+                        onDeleteCourse,
+                        course.id
+                    )
+                }
+            }
+            if (showEditForm) {
+                pickedCourse?.let { course ->
+                    EditCourseModalSheet(
+                        onShowEditForm,
+                        course,
+                        editName,
+                        onEditNameChange,
+                        editCredits,
+                        onEditCreditChange,
+                        onEditCourse,
+                        getSnackbarStatus,
+                        scope,
+                        snackbarHostState,
+                        getSnackbarMessage,
+                        onDismissSnackbar
+                    )
+                }
+            }
+            LaunchedEffect(key1 = showEditForm) {
+                pickedCourse?.let { course ->
+                    setValues(course.name, course.credits.toString())
+                }
+            }
+        } else {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun EditCourseModalSheet(
+    onShowEditForm: () -> Unit,
+    it: Course,
+    editName: String,
+    onEditNameChange: (String) -> Unit,
+    editCredits: String,
+    onEditCreditChange: (String) -> Unit,
+    onEditCourse: (Int) -> Any,
+    getSnackbarStatus: () -> Boolean,
+    scope: CoroutineScope,
+    snackbarHostState: SnackbarHostState,
+    getSnackbarMessage: () -> String,
+    onDismissSnackbar: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = { onShowEditForm() }) {
+        Text(
+            text = it.name,
+            fontSize = FontSizes.normal,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .padding(Padding.normalPadding)
+                .align(Alignment.CenterHorizontally)
+        )
+        Spacer(Modifier.padding(Padding.vertical))
+        Text(
+            stringResource(R.string.course_name),
+            modifier = Modifier
+                .fillMaxWidth(.8f)
+                .align(Alignment.CenterHorizontally)
+        )
+        TextField(
+            value = editName,
+            onValueChange = onEditNameChange,
+            modifier = Modifier
+                .padding(Padding.cardList)
+                .align(Alignment.CenterHorizontally)
+                .fillMaxWidth(.8f),
+            maxLines = 1,
+            singleLine = true,
+        )
+        Text(
+            stringResource(R.string.credits),
+            modifier = Modifier
+                .fillMaxWidth(.8f)
+                .align(Alignment.CenterHorizontally)
+        )
+        TextField(
+            value = editCredits,
+            onValueChange = onEditCreditChange,
+            modifier = Modifier
+                .padding(Padding.cardList)
+                .fillMaxWidth(.8f)
+                .align(Alignment.CenterHorizontally),
+            maxLines = 1,
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+        )
+        Spacer(Modifier.padding(Padding.cardList))
+        Button(
+            onClick = {
+                onEditCourse(it.id)
+                snackbar(
+                    getSnackbarStatus,
+                    scope,
+                    snackbarHostState,
+                    getSnackbarMessage,
+                    onDismissSnackbar
+                )
+                onShowEditForm()
+            },
+            modifier = Modifier
+                .fillMaxWidth(.8f)
+                .align(Alignment.CenterHorizontally)
+        ) {
+            Text(stringResource(R.string.save))
+        }
+    }
+}
+
+private fun snackbar(
+    getSnackbarStatus: () -> Boolean,
+    scope: CoroutineScope,
+    snackbarHostState: SnackbarHostState,
+    getSnackbarMessage: () -> String,
+    onDismissSnackbar: () -> Unit
+) {
+    if (getSnackbarStatus()) {
+        scope.launch {
+            snackbarHostState.showSnackbar(
+                message = getSnackbarMessage(),
+                withDismissAction = true
+            )
+            onDismissSnackbar()
         }
     }
 }
 
 @Composable
-fun CreditAverageBottomSheet(analysis: String, currentCreditAverage: String) {
-    Column(Modifier.fillMaxWidth()) {
+@OptIn(ExperimentalMaterial3Api::class)
+private fun AnalysisBottomSheet(
+    onButtonSheet: () -> Unit,
+    buttonSheetState: SheetState,
+    analysis: String,
+    currentCreditAverage: String
+) {
+    ModalBottomSheet(onDismissRequest = onButtonSheet, sheetState = buttonSheetState) {
         Text(
             text = "Current Credit Average: $currentCreditAverage",
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Padding.bigPadding),
+                .padding(Padding.bigPadding)
+                .align(Alignment.CenterHorizontally),
             textAlign = TextAlign.Center,
             fontSize = FontSizes.normal,
             fontWeight = FontWeight.Bold
@@ -162,11 +344,57 @@ fun CreditAverageBottomSheet(analysis: String, currentCreditAverage: String) {
             text = analysis,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Padding.bigPadding),
+                .padding(Padding.bigPadding)
+                .align(Alignment.CenterHorizontally),
             textAlign = TextAlign.Center,
             fontSize = FontSizes.normal
         )
 
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+private fun OptionsModalSheet(
+    onShowOptions: () -> Unit,
+    pickedCourse: Course?,
+    onShowEditForm: () -> Unit,
+    onDeleteCourse: (Int) -> Unit,
+    courseId: Int
+) {
+    ModalBottomSheet(onDismissRequest = { onShowOptions() }) {
+        Text(
+            text = pickedCourse?.name ?: "",
+            fontWeight = FontWeight.Bold,
+            fontSize = FontSizes.normal,
+            modifier = Modifier
+                .padding(Padding.cardList)
+                .align(Alignment.CenterHorizontally)
+        )
+        Button(
+            onClick = { onShowEditForm(); onShowOptions() },
+            modifier = Modifier
+                .fillMaxWidth(.8f)
+                .align(Alignment.CenterHorizontally)
+        ) {
+            Icon(Icons.Default.Edit, stringResource(R.string.edit))
+            Spacer(Modifier.padding(Padding.horizontal))
+            Text(stringResource(R.string.edit))
+        }
+        Button(
+            onClick = { onDeleteCourse(courseId); onShowOptions() },
+            colors = ButtonDefaults.buttonColors(
+                contentColor = MaterialTheme.colorScheme.onError,
+                containerColor = MaterialTheme.colorScheme.error
+            ),
+            modifier = Modifier
+                .fillMaxWidth(.8f)
+                .align(Alignment.CenterHorizontally)
+        ) {
+            Icon(Icons.Default.Delete, stringResource(R.string.delete))
+            Spacer(Modifier.padding(Padding.horizontal))
+            Text(stringResource(R.string.delete))
+        }
     }
 }
 
@@ -193,8 +421,7 @@ fun CoursesTopBar(
     title: String,
     navController: NavController,
     onButtonSheet: () -> Unit,
-
-    ) {
+) {
     LargeTopAppBar(
         title = { Text(text = title, overflow = TextOverflow.Ellipsis) },
         actions = {
@@ -213,53 +440,46 @@ fun CoursesTopBar(
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun SharedTransitionScope.ListCourses(
-    courses: List<Course>?,
+    courses: List<Course>,
     paddingValues: PaddingValues,
     navController: NavController,
     currentAverages: Map<Int, String>,
-    onDeleteCourse: (Int) -> Unit,
-    animatedVisibilityScope: AnimatedVisibilityScope
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    pickCourse: (Course) -> Unit,
+    onShowOptions: () -> Unit
 ) {
-
-    if (courses != null) {
-        LazyColumn(
-            Modifier
-                .padding(paddingValues)
-                .fillMaxSize()
-        ) {
-            courses.forEach {
-                item {
-                    currentAverages[it.id]?.let { average ->
-                        ItemCourse(
-                            course = it,
-                            navController = navController,
-                            onDeleteCourse = onDeleteCourse,
-                            currentAverage = average,
-                            animatedVisibilityScope = animatedVisibilityScope
-                        )
-                    }
+    LazyColumn(
+        Modifier
+            .padding(paddingValues)
+            .fillMaxSize()
+    ) {
+        courses.forEach {
+            item {
+                currentAverages[it.id]?.let { average ->
+                    ItemCourse(
+                        course = it,
+                        navController = navController,
+                        currentAverage = average,
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        pickCourse = pickCourse,
+                        onShowOptions
+                    )
                 }
             }
-        }
-    } else {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
         }
     }
 }
 
-@OptIn(ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun SharedTransitionScope.ItemCourse(
     course: Course,
     navController: NavController,
-    onDeleteCourse: (Int) -> Unit,
     currentAverage: String,
-    animatedVisibilityScope: AnimatedVisibilityScope
-
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    pickCourse: (Course) -> Unit,
+    onShowOptions: () -> Unit,
 ) {
-    val pressOffset = remember { mutableStateOf(DpOffset.Zero) }
-    val isMenu = remember { mutableStateOf(false) }
     Card(
         modifier = Modifier
             .padding(Padding.cardList)
@@ -267,20 +487,16 @@ fun SharedTransitionScope.ItemCourse(
                 state = rememberSharedContentState(key = "card-${course.id}"),
                 animatedVisibilityScope = animatedVisibilityScope
             )
-            .pointerInput(true) {
-                detectTapGestures(
-                    onTap = {
-                        onClickCourse(navController, course.id)
-                    },
-                    onLongPress = {
-                        isMenu.value = true
-                        pressOffset.value = DpOffset(it.x.toDp(), it.y.toDp())
-                        Log.i("PressOffset", pressOffset.value.toString())
-                    },
-                )
-            },
-
-        ) {
+            .combinedClickable(
+                onClick = {
+                    onClickCourse(navController, course.id)
+                },
+                onLongClick = {
+                    pickCourse(course)
+                    onShowOptions()
+                }
+            )
+    ) {
         Column(
             Modifier
                 .padding(Padding.normalPadding)
@@ -315,57 +531,6 @@ fun SharedTransitionScope.ItemCourse(
                         Text(text = stringResource(id = R.string.average))
                         Text(text = ": $currentAverage")
                     }
-                }
-            }
-        }
-    }
-    DropdownMenu(
-        expanded = isMenu.value,
-        onDismissRequest = {
-            isMenu.value = false
-        }
-    ) {
-        PopUpMenu(onDeleteCourse, course.id, isMenu)
-    }
-}
-
-
-@Preview
-@Composable
-private fun PopupMenu() {
-    val preview = remember { mutableStateOf(true) }
-    PopUpMenu(onDeleteCourse = {}, courseId = 0, preview)
-}
-
-@Composable
-private fun PopUpMenu(
-    onDeleteCourse: (Int) -> Unit,
-    courseId: Int,
-    isMenuVisible: MutableState<Boolean>
-) {
-    Surface(
-        shape = RoundedCornerShape(20),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(Modifier.fillMaxWidth()) {
-            TextButton(
-                onClick = {
-                    onDeleteCourse(courseId)
-                    isMenuVisible.value = false
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = MaterialTheme.colorScheme.error
-                ),
-                modifier = Modifier.padding(Padding.horizontal)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(text = stringResource(id = R.string.delete))
-                    Icon(Icons.Default.Delete, "Delete")
                 }
             }
         }

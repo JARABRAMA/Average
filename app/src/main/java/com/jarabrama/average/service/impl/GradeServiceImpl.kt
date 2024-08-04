@@ -9,6 +9,7 @@ import com.jarabrama.average.model.Grade
 import com.jarabrama.average.repository.GradeRepository
 import com.jarabrama.average.repository.SettingsRepository
 import com.jarabrama.average.service.GradeService
+import com.jarabrama.average.utils.Functions
 
 class GradeServiceImpl(
     private val gradeRepository: GradeRepository,
@@ -61,9 +62,10 @@ class GradeServiceImpl(
 
     override fun update(grade: Grade): Grade {
         val grades = gradeRepository.findAll()
-        val index: Int = grades.indexOf(grade)
+        val index = grades.indexOfFirst { it.id == grade.id }
         if (-1 != index) {
             grades[index] = grade
+            gradeRepository.save(grades)
             return grade
         } else {
             throw GradeNotFoundException(grade.id)
@@ -113,7 +115,7 @@ class GradeServiceImpl(
             } else if (neededQualification <= settings.minQualification) {
                 "Great! you have reach your goal before complete total qualification percentage"
             } else {
-                "You need a qualification of $neededQualification in the $availablePercentage% of resting evaluative percentage"
+                "You need a qualification of ${Functions.formatDecimal(neededQualification)} in the $availablePercentage% of resting evaluative percentage"
             }
         }
     }

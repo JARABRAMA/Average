@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jarabrama.average.event.Event
 import com.jarabrama.average.exceptions.courseExceptions.CourseNotFoundException
+import com.jarabrama.average.exceptions.gradeExceptions.GradeException
 import com.jarabrama.average.model.Course
 import com.jarabrama.average.model.Grade
 import com.jarabrama.average.service.CourseService
@@ -20,7 +21,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
+import java.lang.Double.parseDouble
 import java.lang.Integer.parseInt
+import java.lang.NumberFormatException
 
 class ExpandedCourseViewModel @AssistedInject constructor(
     private val gradeService: GradeService,
@@ -33,20 +36,41 @@ class ExpandedCourseViewModel @AssistedInject constructor(
     private val _courseName = MutableStateFlow("")
     val courseName = _courseName.asStateFlow()
 
+    private val _editGradeName = MutableStateFlow("")
+    val editGradeName = _editGradeName.asStateFlow()
+
+    private val _percentage = MutableStateFlow("")
+    val percentage = _percentage.asStateFlow()
+
+    private val _qualification = MutableStateFlow("")
+    val qualification = _qualification.asStateFlow()
+
+    val setEditGradeValues = { name: String, qualification: String, percentage: String ->
+        _editGradeName.value = name
+        _qualification.value = qualification
+        _percentage.value = percentage
+    }
+
+    val onEditNameChange = { nameValue: String ->
+        _editGradeName.value = nameValue
+    }
+
+    val onPercentageChange = { percentageValue: String ->
+        _percentage.value = percentageValue
+    }
+
+    val onQualificationChange = { qualificationValue: String ->
+        _qualification.value = qualificationValue
+    }
+
     private val _grades = MutableStateFlow(listOf<Grade>())
     val grades = _grades.asStateFlow()
-
-    private val _editNameValue = MutableStateFlow("")
-    val editNameValue = _editNameValue.asStateFlow()
-
-    private val _editCreditValue = MutableStateFlow("")
-    val editCreditValue = _editCreditValue.asStateFlow()
 
     private val _average = MutableStateFlow("")
     val average = _average.asStateFlow()
 
     fun getBottomSheetContent(): String {
-       return gradeService.getAnalysis(courseId)
+        return gradeService.getAnalysis(courseId)
     }
 
     private val _showSnackbar = MutableStateFlow(false)
@@ -67,20 +91,10 @@ class ExpandedCourseViewModel @AssistedInject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             _grades.value = gradeService.findAllByCourseId(courseId)
             _course.value = courseService.get(courseId)
-            _editNameValue.value = _course.value?.name  ?: ""
             _courseName.value = _course.value?.name ?: ""
-            _editCreditValue.value = _course.value?.credits.toString()
             _average.value =
                 Functions.formatDecimal(gradeService.getAverage(courseId))
         }
-    }
-
-    fun onNameChange(value: String) {
-        _editNameValue.value = value
-    }
-
-    fun onCreditChange(value: String) {
-        _editCreditValue.value = value
     }
 
     fun onDismissSnackbar() {
@@ -88,40 +102,42 @@ class ExpandedCourseViewModel @AssistedInject constructor(
         _errorMessage.value = ""
     }
 
-    fun getErrorState(): Boolean = _showSnackbar.value
-    fun getErrorMessage(): String = _errorMessage.value
+    val onDelete = { id: Int ->
+        viewModelScope.launch(Dispatchers.IO) {
+            gradeService.delete(id)
+            updateGrades()
+        }
+    }
 
-    fun onUpdate() {
-        if (editNameValue.value == "") {
-            _showSnackbar.value = true
-            _errorMessage.value = Strings.ERROR_NAME
-        } else {
+    val onEdit = { id: Int ->
+        viewModelScope.launch(Dispatchers.IO) {
             try {
-                val updatedCourse = course.value?.copy(
-                    name = editNameValue.value,
-                    credits = parseInt(editCreditValue.value)
+                val qualification = parseDouble(_qualification.value)
+                val percentage = parseDouble(_percentage.value)
+
+                gradeService.update(
+                    Grade(
+                        id,
+                        courseId,
+                        _editGradeName.value,
+                        qualification,
+                        percentage
+                    )
                 )
-                viewModelScope.launch(Dispatchers.IO) {
-                    updatedCourse?.let {
-                        courseService.update(updatedCourse)
-                    }
-                }
-                _course.value = updatedCourse
-                _courseName.value = updatedCourse?.name ?: ""
-                EventBus.getDefault().post(
-                    Event.CourseAddedEvent(_editNameValue.value, parseInt(_editCreditValue.value))
-                )
+                updateGrades()
             } catch (e: NumberFormatException) {
-                Log.e("NumberFormatException", e.message, e)
-                _errorMessage.value = Strings.ERROR_CREDITS
                 _showSnackbar.value = true
-            } catch (e: CourseNotFoundException) {
-                Log.e("CourseNotFoundException", e.message, e)
-                _errorMessage.value = Strings.ENTITY_NOT_FOUND
+                _errorMessage.value = Strings.ERROR_DECIMAL
+            } catch (e: GradeException) {
                 _showSnackbar.value = true
+                e.message?.let { message -> _errorMessage.value = message }
             }
         }
     }
+
+    fun getErrorState(): Boolean = _showSnackbar.value
+    fun getErrorMessage(): String = _errorMessage.value
+
 
     init {
         updateGrades(gradeService, courseId)
