@@ -470,8 +470,8 @@ private fun SharedTransitionScope.TopBarExpandedCourse(
             Text(
                 text = courseName,
                 maxLines = 1,
-                modifier = Modifier.sharedElement(
-                    state = rememberSharedContentState(key = "course-${courseId}"),
+                modifier = Modifier.sharedBounds(
+                    sharedContentState = rememberSharedContentState(key = "course-${courseId}"),
                     animatedVisibilityScope = animatedVisibilityScope,
                 )
             )

@@ -482,11 +482,11 @@ fun SharedTransitionScope.ItemCourse(
 ) {
     Card(
         modifier = Modifier
-            .padding(Padding.cardList)
             .sharedElement(
                 state = rememberSharedContentState(key = "card-${course.id}"),
                 animatedVisibilityScope = animatedVisibilityScope
             )
+            .padding(Padding.cardList)
             .combinedClickable(
                 onClick = {
                     onClickCourse(navController, course.id)
@@ -509,10 +509,9 @@ fun SharedTransitionScope.ItemCourse(
                     fontSize = FontSizes.normal,
                     modifier = Modifier
                         .padding(Padding.normalPadding)
-                        .sharedElement(
-                            state = rememberSharedContentState(key = "course-${course.id}"),
+                        .sharedBounds(
+                            sharedContentState = rememberSharedContentState(key = "course-${course.id}"),
                             animatedVisibilityScope = animatedVisibilityScope,
-
                             ),
                     fontWeight = FontWeight.Bold
                 )
